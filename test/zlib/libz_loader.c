@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include "../rtld/rtld.h"
+
+#include "lib_loader.h"
 #include "zlib_list.h"
 #include "zlib_stuff.h"
 

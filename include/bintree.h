@@ -1,7 +1,7 @@
 #ifndef _H_BINTREE
 #define _H_BINTREE
 
-#include "../rtld/anchor.h"
+#include "anchor.h"
 
 struct _bintree {
 	Anchor anchor;

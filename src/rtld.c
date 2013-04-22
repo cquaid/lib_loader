@@ -13,9 +13,9 @@
 
 #include "rtld.h"
 #include "anchor.h"
-#include "../debug.h"
-#include "../list/list.h"
-#include "../bintree/bintree.h"
+#include "debug.h"
+#include "list.h"
+#include "bintree.h"
 
 #define TF_GNU_HASH (1 << 1)
 #define TF_HASH     (1 << 2)

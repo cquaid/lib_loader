@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../debug.h"
+#include "debug.h"
 #include "bintree.h"
-#include "../rtld/anchor.h"
+#include "anchor.h"
 
 BinTree*
 bintree_new_node(Anchor *anchor)

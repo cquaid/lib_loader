@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../rtld/anchor.h"
-#include "../rtld/rtld.h"
+#include "lib_loader.h"
 
 Anchor a = { "malloc", malloc };
 
