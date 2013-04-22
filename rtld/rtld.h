@@ -2,7 +2,7 @@
 #define _H_RTLD
 
 #include <elf.h>
-#include "../list/list.h"
+#include "anchor.h"
 
 #ifdef __i386__
 # define ELF_D(x) typedef Elf32_##x Elf_##x
@@ -91,9 +91,7 @@ struct _elf_object {
 };
 typedef struct _elf_object elf_object;
 
-extern void add_fixup_list(List *list);
-extern void cleanup_fixup_list(void);
-
+extern void add_fixup_anchor(Anchor *anchor);
 extern int elf_dlclose(elf_object *obj);
 extern void* elf_dlsym(elf_object *obj, char *name);
 extern elf_object* elf_dlopen(char *path);

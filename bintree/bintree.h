@@ -1,15 +1,16 @@
 #ifndef _H_BINTREE
 #define _H_BINTREE
 
+#include "../rtld/anchor.h"
+
 struct _bintree {
-	char *name;
-	unsigned long hash; /* unused */
+	Anchor anchor;
 	struct _bintree *left;
 	struct _bintree *right;
 };
 typedef struct _bintree BinTree;
 
-extern BinTree* bintree_new_node(char *name, unsigned long hash);
+extern BinTree* bintree_new_node(Anchor *anchor);
 extern BinTree* bintree_add_node(BinTree *root, BinTree *node);
 extern void bintree_delete_node(BinTree *node);
 extern void bintree_delete_tree(BinTree *root);

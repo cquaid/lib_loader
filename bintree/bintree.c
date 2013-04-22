@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "debug.h"
+#include "../debug.h"
 #include "bintree.h"
+#include "../rtld/anchor.h"
 
 BinTree*
-bintree_new_node(char *name, unsigned long hash)
+bintree_new_node(Anchor *anchor)
 {
 	BinTree *ret;
-	size_t len;
 
 	ret = (BinTree *)malloc(sizeof(BinTree));
 	if (ret == NULL) {
@@ -19,20 +19,8 @@ bintree_new_node(char *name, unsigned long hash)
 	}
 
 	memset(ret, 0, sizeof(BinTree));
-	
-	len = strlen(name);
-	ret->name = (char *)malloc(len + 1);
-	if (ret->name == NULL) {
-		free(ret);
-		debug("%s: malloc(name): %s\n", __func__,
-			  strerror(errno));
-		return NULL;
-	}
-
-	strncpy(ret->name, name, len);
-	ret->name[len] = '\0';
-
-	ret->hash = hash;
+	if (anchor)
+		memcpy(&ret->anchor, anchor, sizeof(Anchor));	
 
 	return ret;
 }
@@ -42,7 +30,7 @@ bintree_add_node(BinTree *root, BinTree *node)
 {
 	int t;
 
-	t = strcmp(root->name, node->name);
+	t = strcmp(root->anchor.name, node->anchor.name);
 	if (t == 0)
 		return root;
 	
@@ -68,10 +56,7 @@ bintree_delete_node(BinTree *node)
 {
 	if (node == NULL)
 		return;
-	
-	if (node->name != NULL)
-		free(node->name);
-	
+
 	free(node);
 }
 
@@ -94,7 +79,7 @@ bintree_search(BinTree *root, char *name)
 	if (root == NULL)
 		return NULL;
 
-	t = strcmp(root->name, name);
+	t = strcmp(root->anchor.name, name);
 	if (t == 0)
 		return root;
 	

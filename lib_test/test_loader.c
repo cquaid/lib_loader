@@ -3,7 +3,6 @@
 #include <string.h>
 #include "../rtld/anchor.h"
 #include "../rtld/rtld.h"
-#include "../list/list.h"
 
 Anchor a = { "malloc", malloc };
 
@@ -16,31 +15,9 @@ main(int argc, char *argv[])
 	elf_object *elf;
 	getRandomNumber n;
 	getString s;
-	List *l;
-	ListNode *no;
 	char *t;
-	Anchor *b;
 
-	l = ll_new_list();
-	if (l == NULL)
-		return -1;
-	
-	b = (Anchor *)malloc(sizeof(Anchor));
-	if (b == NULL) {
-		free(l);
-		return -1;
-	}
-	memcpy(b, &a, sizeof(Anchor));
-	no = ll_new_node((void *)b);
-	if (no == NULL) {
-		free(b);
-		free(l);
-		return -1;
-	}
-
-	ll_push_node(l, no);
-
-	add_fixup_list(l);
+	add_fixup_anchor(&a);
 
 	elf = elf_dlopen(argv[1]);
 	n = (getRandomNumber)elf_dlsym(elf, "getRandomNumber");
@@ -56,6 +33,5 @@ main(int argc, char *argv[])
 	}
 	elf_dlclose(elf);
 
-	cleanup_fixup_list();
 	return 0;
 }

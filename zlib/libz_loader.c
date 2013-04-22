@@ -4,21 +4,15 @@
 #include <fcntl.h>
 #include <string.h>
 #include "../rtld/rtld.h"
-#include "../list/list.h"
 #include "zlib_list.h"
 #include "zlib_stuff.h"
 
 int
 main(int argc, char *argv[])
 {
-	List *l;
 	elf_object *elf;
 
-	l = create_zlib_list();
-	if (l == NULL)
-		return 1;
-
-	add_fixup_list(l);
+	create_zlib_fixup();
 
 	elf = elf_dlopen("/lib/x86_64-linux-gnu/libz.so.1.2.7");
 	if (elf == NULL)
@@ -66,12 +60,10 @@ main(int argc, char *argv[])
 	fprintf(stderr, "usage: a.out [-d] <source> dest\n");
 	
 	elf_dlclose(elf);
-	cleanup_fixup_list();
 	return 0;
 
 out:
 	elf_dlclose(elf);
-	cleanup_fixup_list();
 	return -2;
 }
 

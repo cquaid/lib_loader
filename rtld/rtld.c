@@ -15,6 +15,7 @@
 #include "anchor.h"
 #include "../debug.h"
 #include "../list/list.h"
+#include "../bintree/bintree.h"
 
 #define TF_GNU_HASH (1 << 1)
 #define TF_HASH     (1 << 2)
@@ -33,11 +34,10 @@ static Elf_Sym sym_zero;
 static Elf_Sym sym_temp;
 static elf_object obj_main_0;
 
-static List *fixup_list = NULL;
+static BinTree *fixup_tree = NULL;
 static List *object_list = NULL;
 
-static void fixup_node_free(void *data);
-static void fixup_list_free(void *data);
+
 static void add_object_list(elf_object *obj);
 static void free_object_list(void *data);
 static void cleanup_object_list(void);
@@ -61,35 +61,39 @@ static void* _elf_dlsym(elf_object *obj, char *name);
 
 
 void
-add_fixup_list(List *list)
+add_fixup_anchor(Anchor *anchor)
 {
-	ListNode *tmp;
+	BinTree *tmp1;
+	BinTree *tmp2;
 
-	if (list == NULL)
+	if (anchor == NULL)
 		return;
-	
-	if (fixup_list == NULL) {
-		fixup_list = ll_new_list();
-		if (fixup_list == NULL) {
-			debugln("couldn't mallocate");
+
+	if (fixup_tree == NULL) {
+		fixup_tree = bintree_new_node(anchor);
+		if (fixup_tree == NULL) {
+			debugln("couldn't allocate the fixup_tree");
 			return;
 		}
-	}
-
-	tmp = ll_new_node((void *)list);
-	if (tmp == NULL) {
-		debugln("couldn't mallocate node");
 		return;
 	}
 
-	ll_push_node(fixup_list, tmp);
-}
+	tmp1 = bintree_search(fixup_tree, anchor->name);
+	if (tmp1 != NULL) {
+		debug("%s: replacing `%s' with new definition\n",
+			  __func__, anchor->name);
+		
+		memcpy(&tmp1->anchor, anchor, sizeof(Anchor));
+		return;
+	}
 
-void
-cleanup_fixup_list(void)
-{
-	ll_delete_list(fixup_list, fixup_list_free);
-	fixup_list = NULL;
+	tmp2 = bintree_new_node(anchor);
+	if (tmp2 == NULL) {
+		debugln("couldn't allocate a bintree node");
+		return;
+	}
+
+	(void)bintree_add_node(fixup_tree, tmp2);
 }
 
 int
@@ -1015,36 +1019,21 @@ static void _rtld_fixup_start(void){}
 static void*
 fixup_lookup(char *name)
 {
-	Anchor *a;
+	BinTree *b;
 	ListNode *c;
 	
-	if (fixup_list == NULL && object_list == NULL) {
+	if (fixup_tree == NULL && object_list == NULL) {
 		debug("%s: WARN: `%s' not found\n", __func__, name);
 		return NULL;
 	}
 	
-	if (fixup_list == NULL)
+	if (fixup_tree == NULL)
 		goto object_search;
 
-	c = fixup_list->head;
-	for (; c != NULL; c = c->next) {
-		List *l = c->data;
-		ListNode *n;
-		
-		if (l == NULL)
-			continue;
-		
-		n = l->head;
-		for (; n != NULL; n = n->next) {
-			a = n->data;
-			if (a == NULL)
-				continue;
-
-			if (!strcmp(a->name, name)) {
-				debug("%s: INFO: `%s' found in fixup_list\n", __func__, name);
-				return a->symbol;
-			}
-		}
+	b = bintree_search(fixup_tree, name);
+	if (b != NULL) {
+		debug("%s: INFO: `%s' found in fixup_tree\n", __func__, name);
+		return b->anchor.symbol;
 	}
 
 object_search:
@@ -1063,18 +1052,6 @@ object_search:
 out:
 	debug("%s: WARN: `%s' not found\n", __func__, name);
 	return NULL;
-}
-
-static void
-fixup_node_free(void *data)
-{
-	free(data);
-}
-
-static void
-fixup_list_free(void *data)
-{
-	ll_delete_list((List *)data, fixup_node_free);
 }
 
 static void

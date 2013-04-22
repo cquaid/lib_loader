@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "zlib_list.h"
-#include "../list/list.h"
+#include "../rtld/rtld.h"
 #include "../rtld/anchor.h"
 
 static Anchor alist[] = {
@@ -33,41 +33,12 @@ static Anchor alist[] = {
 	{ NULL, NULL }
 };
 
-List*
-create_zlib_list(void)
+void
+create_zlib_fixup(void)
 {
-	List *ret;
-	ListNode *node;
-	Anchor *a;
 	Anchor *beg;
 
-	ret = ll_new_list();
-	if (ret == NULL)
-		return NULL;
-
-#define add(al) do { \
-					a = (Anchor *)malloc(sizeof(Anchor)); \
-					if (a == NULL) { \
-						ll_delete_list(ret, free); \
-						return NULL; \
-					} \
-					memcpy(a, al, sizeof(Anchor)); \
-					node = ll_new_node((void *)a); \
-					if (node == NULL) { \
-						free(a); \
-						ll_delete_list(ret, free); \
-						return NULL; \
-					} \
-					ll_push_node(ret, node); \
-			  } while (0)
-		
 	beg = alist;
-	while (beg->name != NULL && beg->symbol != NULL) {
-		add(beg);
-		++beg;
-	}
-
-#undef add
-
-	return ret;
+	while (beg->name != NULL && beg->symbol != NULL)
+		add_fixup_anchor(beg++);
 }

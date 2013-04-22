@@ -16,7 +16,7 @@ strip llib.so
 rm -f lib.o
 
 echo "compiling test_loader"
-gcc -Wall -g test_loader.c ../rtld/rtld.c ../list/list.c -o test_loader -DDEBUG
+gcc -Wall -g test_loader.c ../bintree/bintree.c ../rtld/rtld.c ../list/list.c -o test_loader -DDEBUG
 if [ $? -ne 0 ]; then
 	echo "Failed: gcc test_loader"
 	exit 1
