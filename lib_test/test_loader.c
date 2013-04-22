@@ -20,7 +20,6 @@ main(int argc, char *argv[])
 	char *t;
 	Anchor *b;
 
-
 	l = ll_new_list();
 	if (l == NULL)
 		return -1;

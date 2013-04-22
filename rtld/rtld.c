@@ -46,14 +46,14 @@ add_fixup_list(List *list)
 	if (fixup_list == NULL) {
 		fixup_list = ll_new_list();
 		if (fixup_list == NULL) {
-			debug("%s: couldn't mallocate\n", __func__);
+			debugln("couldn't mallocate");
 			return;
 		}
 	}
 
 	tmp = ll_new_node((void *)list);
 	if (tmp == NULL) {
-		debug("%s: couldn't mallocate node\n", __func__);
+		debugln("couldn't mallocate node");
 		return;
 	}
 
@@ -90,14 +90,14 @@ add_object_list(elf_object *obj)
 	if (object_list == NULL) {
 		object_list = ll_new_list();
 		if (object_list == NULL) {
-			debug("%s: coulsn't mallocate\n", __func__);
+			debugln("coulsn't mallocate");
 			return;
 		}
 	}
 
 	tmp = ll_new_node((void*)obj);
 	if (tmp == NULL) {
-		debug("%s: couldn't mallocate node\n", __func__);
+		debugln("couldn't mallocate node");
 		return;
 	}
 	
@@ -121,7 +121,6 @@ fixup_lookup(char *name, bool in_plt)
 
 	(void)in_plt;
 	
-	//debug("%s: %s\n",__func__,name);
 	if (fixup_list == NULL && object_list == NULL) {
 		debug("%s: WARN: `%s' not found\n", __func__, name);
 		return NULL;
@@ -192,7 +191,7 @@ elf_dlclose(elf_object *obj)
 	fini_function fini;
 
 	if (obj == NULL) {
-		debug("%s: null object\n", __func__);
+		debugln("null object");
 		return -EINVAL;
 	}
 
@@ -230,11 +229,9 @@ static void*
 _gnu_dlsym(elf_object *obj, char *name)
 {
 	Elf_Hashelt bucket;
-#if 0
 	Elf_Addr bloom_word;
 	unsigned long h1, h2;
 	const int c = BLOOM_SIZE_CONST * 32;
-#endif
 	unsigned long symnum;
 	unsigned long hash;
 	Elf_Hashelt *hashval;
@@ -242,8 +239,6 @@ _gnu_dlsym(elf_object *obj, char *name)
 	Elf_Sym *symp;
 
 	hash = (unsigned long)(_gnu_hash(name) & 0xffffffff);
-	/* XXX */
-#if 0 /* XXX: renable this sometime, bug fixed */
 	bloom_word = obj->bloom_gnu[(hash / c) & obj->maskwords_bm_gnu];
 
 	/* calculate mod 32/64 of gnu hash and derivative */
@@ -255,48 +250,26 @@ _gnu_dlsym(elf_object *obj, char *name)
 		debug("%s: `%s' is not in the list\n", __func__, name);
 		return NULL;
 	}
-#endif
+
 	if (!obj->nbuckets_gnu) {
-		debug("%s: nbuckets_gnu == 0\n", __func__);
+		debugln("nbuckets_gnu == 0");
 		return NULL;
 	}
 	
 	/* locate hash chain */
 	bucket = obj->buckets_gnu[hash % obj->nbuckets_gnu];
 	if (!bucket) {
-		debug("%s: couldn't find bucket\n", __func__);
+		debugln("couldn't find bucket");
 		return NULL;
 	}
 
 	hashval = &obj->chain_zero_gnu[bucket];
-	{
-		unsigned long i;
-		for (i = 0; i < obj->nbuckets_gnu; ++i) {
-			symnum = hashval - obj->chain_zero_gnu;
-			symp = obj->symtab + symnum;
-			strp = obj->strtab + symp->st_name;
-
-			if (strp == NULL) {
-				++hashval;
-				continue;
-			}
-
-			if (!strcmp(name,strp))
-				return (obj->relocbase + symp->st_value);
-			
-			++hashval;
-		}
-	}
-#if 0
-	hashval = &obj->chain_zero_gnu[bucket];
 	do {
-		debug("hashval: %lu %lu\n", (unsigned long)*hashval,
-			  (unsigned long)(*hashval ^ hash) >> 1);
 		if (((*hashval ^ hash) >> 1) == 0) {
 			symnum = hashval - obj->chain_zero_gnu;
 			symp = obj->symtab + symnum;
 			strp = obj->strtab + symp->st_name;
-			debug("%s: %s %s\n",__func__,name,strp);
+
 			switch(ELF_ST_TYPE(symp->st_info)) {
 			case STT_FUNC:
 			case STT_NOTYPE:
@@ -323,7 +296,6 @@ _gnu_dlsym(elf_object *obj, char *name)
 			return (obj->relocbase + symp->st_value);
 		}
 	} while ((*hashval++ & 1) == 0);
-#endif
 
 	return NULL;
 }
@@ -337,17 +309,17 @@ _elf_dlsym(elf_object *obj, char *name)
 	Elf_Sym *symp;
 
 	if (obj == NULL || name == NULL) {
-		debug("%s: null obj or name\n", __func__);
+		debugln("null obj or name");
 		return NULL;
 	}
 
 	if (!(obj->flags & TF_HASH)) {
-		debug("%s: DT_HASH never found\n", __func__);
+		debugln("DT_HASH never found");
 		return NULL;
 	}
 
 	if (!obj->nbuckets) {
-		debug("%s: nbuckets == 0\n", __func__);
+		debugln("nbuckets == 0");
 		return NULL;
 	}
 
@@ -414,7 +386,7 @@ elf_dlopen(char *path)
 
 	if (fstat(fd, &st) == -1) {
 		close(fd);
-		debug("%s: fstat() failed\n", __func__);
+		debugln("fstat() failed");
 		return NULL;
 	}
 
@@ -427,19 +399,19 @@ elf_dlopen(char *path)
 
 	if (nbytes < (ssize_t)sizeof(Elf_Ehdr)) {
 		close(fd);
-		debug("%s: file too small\n", __func__);
+		debugln("file too small");
 		return NULL;
 	}
 	
 	if (u.hdr.e_phentsize != sizeof(Elf_Phdr)) {
 		close(fd);
-		debug("%s: e_phentsize is not sizeof(Elf_Phdr)\n", __func__);
+		debugln("e_phentsize is not sizeof(Elf_Phdr)");
 		return NULL;
 	}
 
 	if (u.hdr.e_phoff + u.hdr.e_phnum * sizeof(Elf_Phdr) > (size_t)nbytes) {
 		close(fd);
-		debug("%s: something too large\n", __func__);
+		debugln("something too large");
 		return NULL;
 	}
 
@@ -455,7 +427,7 @@ elf_dlopen(char *path)
 	if (_elf_dlmmap(ret, fd, &u.hdr)) {
 		close(fd);
 		free(ret);
-		debug("%s: _elf_dlmmap()\n", __func__);
+		debugln("_elf_dlmmap()");
 		return NULL;
 	}
 
@@ -463,14 +435,14 @@ elf_dlopen(char *path)
 	fixup_init();
 
 	if (digest_dynamic(ret)) {
-		debug("%s: digest_dynamic()\n", __func__);
+		debugln("digest_dynamic()");
 		munmap(ret->relocbase, ret->relocsize);
 		free(ret);
 		return NULL;
 	}
 
 	if (_elf_dlreloc(ret)) {
-		debug("%s: _elf_dlreloc()\n", __func__);
+		debugln("_elf_dlreloc()");
 		munmap(ret->relocbase, ret->relocsize);
 		free(ret);
 		return NULL;
@@ -602,7 +574,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	elf_object *def_obj;
 	
 	if (symnum >= ref_obj->dynsymcount) { /* ->nchains */
-		debug("%s: chain too small\n", __func__);
+		debugln("chain too small");
 		return NULL;	
 	}
 
@@ -611,7 +583,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	def_obj = NULL;
 
 	if (ELF_ST_TYPE(ref->st_info) == STT_SECTION) {
-		debug("%s: STT_SECTION\n", __func__);
+		debugln("STT_SECTION");
 		return NULL; /* XXX: should fail/exit */
 	}
 
@@ -619,7 +591,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 		def = ref;
 		def_obj = ref_obj;
 		if (!ref->st_value) {
-			debug("%s: ref->st_value == 0\n", __func__);
+			debugln("ref->st_value == 0");
 			return NULL; /* XXX: should fail/exit */
 		}
 	}
@@ -681,7 +653,7 @@ digest_dynamic(elf_object *obj)
 	Elf_Hashelt *hashtab;
 
 	if (obj == NULL) {
-		debug("%s: null object\n", __func__);
+		debugln("null object");
 		return -EINVAL; /* XXX: should fail/exit */
 	}
 
@@ -892,7 +864,7 @@ _elf_dlreloc(elf_object *obj)
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &def_obj,
 							  false, NULL);
 			if (def == NULL) {
-				debug("%s: R_X86_64_64: def == NULL\n", __func__);
+				debugln("R_X86_64_64: def == NULL");
 				return -1; /* XXX: should fail/exit */
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value + rela->r_addend);
@@ -902,7 +874,7 @@ _elf_dlreloc(elf_object *obj)
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &def_obj,
 							  false, NULL);
 			if (def == NULL) {
-				debug("%s: R_X86_64_GLOB_DAT: def == NULL\n", __func__);
+				debugln("R_X86_64_GLOB_DAT: def == NULL");
 				return -1; /* XXX: should fail/exit */
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value);
@@ -949,7 +921,7 @@ _elf_dlreloc(elf_object *obj)
 			def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj,
 							  false, NULL);
 			if (def == NULL) {
-				debug("%s: R_386_GLOB_DAT: def == null\n", __func__);
+				debugln("R_386_GLOB_DAT: def == null");
 				return -1; /* XXX: should fail/exit */
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value);
@@ -963,7 +935,7 @@ _elf_dlreloc(elf_object *obj)
 			def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj,
 							  false, NULL);
 			if (def == NULL) {
-				debug("%s: R_386_32: def == null\n", __func__);
+				debugln("R_386_32: def == null");
 				return -1; /* XXX: should fail/exit */
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value);
