@@ -17,6 +17,10 @@
 #include "list.h"
 #include "bintree.h"
 
+/**
+ * Defines
+ */
+
 #define TF_GNU_HASH (1 << 1)
 #define TF_HASH     (1 << 2)
 #define TF_PLTGOT   (1 << 3)
@@ -27,9 +31,18 @@
 #define TRUNC_PAGE(vaddr) ((vaddr) & ~PAGE_MASK)
 #define ROUND_PAGE(vaddr) (((vaddr) + PAGE_MASK) & ~PAGE_MASK)
 
+/**
+ * Types
+ */
+
 typedef void(*init_function)(void);
 typedef void(*fini_function)(void);
 
+/**
+ * Globals
+ */
+
+/* these three are not thread safe :( */
 static Elf_Sym sym_zero;
 static Elf_Sym sym_temp;
 static elf_object obj_main_0;
@@ -37,38 +50,54 @@ static elf_object obj_main_0;
 static BinTree *fixup_tree = NULL;
 static List *object_list = NULL;
 
+/**
+ * Undefined functions
+ */
 
-static void add_object_list(elf_object *obj);
-static void free_object_list(void *data);
-static void cleanup_object_list(void);
-static void fixup_init(void);
-static void _rtld_fixup_start(void);
+static void free_object_list(void *data){}
+static void fixup_init(void){}
+static void _rtld_fixup_start(void){}
+
+/**
+ * Prototypes
+ */
+
+static void  add_object_list(elf_object *obj);
+static void  cleanup_object_list(void);
+static int   convert_prot(int flags);
+static int   digest_dynamic(elf_object *obj);
+static void* dlopen_wrap(char *name, int mode);
 static void* fixup_lookup(char *name);
-static Elf_Sym *find_symdef(unsigned long symnum, elf_object *ref_obj,
+
+static int   _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
+static int   _elf_dlreloc(elf_object *obj)
+
+static int   _elf_dlsym(elf_object *obj, char *name);
+static void* _gnu_dlsym(elf_object *obj, char *name);
+
+static uint32_t _elf_hash(char *name);
+static uint32_t _gnu_hash(char *name);
+
+static Elf_Sym* find_symdef(unsigned long symnum, elf_object *ref_obj,
 							elf_object **out, bool in_plt, void *cache);
-static int convert_prot(int flags);
 #if 0
 static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
 #endif
-static void *dlopen_wrap(char *name, int mode);
-static int digest_dynamic(elf_object *obj);
-static int _elf_dlreloc(elf_object *obj);
-static int _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
-static uint32_t _elf_hash(char *name);
-static uint32_t _gnu_hash(char *name);
-static void* _gnu_dlsym(elf_object *obj, char *name);
-static void* _elf_dlsym(elf_object *obj, char *name);
 
+
+/**
+ * Exported functions
+ */
 
 void
 add_fixup_anchor(Anchor *anchor)
 {
-	BinTree *tmp1;
-	BinTree *tmp2;
+	BinTree *tmp;
 
 	if (anchor == NULL)
 		return;
 
+	/* create a new tree if one doesn't exist */
 	if (fixup_tree == NULL) {
 		fixup_tree = bintree_new_node(anchor);
 		if (fixup_tree == NULL) {
@@ -78,22 +107,24 @@ add_fixup_anchor(Anchor *anchor)
 		return;
 	}
 
-	tmp1 = bintree_search(fixup_tree, anchor->name);
-	if (tmp1 != NULL) {
+	/* check if the anchor is already in the tree */
+	tmp = bintree_search(fixup_tree, anchor->name);
+	if (tmp != NULL) {
 		debug("%s: replacing `%s' with new definition\n",
 			  __func__, anchor->name);
-		
+		/* replace the old anchor with the new one */
 		memcpy(&tmp1->anchor, anchor, sizeof(Anchor));
 		return;
 	}
 
-	tmp2 = bintree_new_node(anchor);
-	if (tmp2 == NULL) {
+	/* if not found, add a new node to the tree */
+	tmp = bintree_new_node(anchor);
+	if (tmp == NULL) {
 		debugln("couldn't allocate a bintree node");
 		return;
 	}
 
-	(void)bintree_add_node(fixup_tree, tmp2);
+	(void)bintree_add_node(fixup_tree, tmp);
 }
 
 int
@@ -106,12 +137,15 @@ elf_dlclose(elf_object *obj)
 		debugln("null object");
 		return -EINVAL;
 	}
-
+	
+	/* grab and call the fini function */
 	if (obj->fini) {
 		fini = (fini_function)obj->fini;
 		fini();
 	}
 
+	/* XXX: currently this doesn't actually do anything */
+	/* close all loaded dependents and free the handles list */
 	if (obj->dl_count > 0 && obj->dl_handles != NULL) {
 		for (idx = obj->dl_count; idx > 0; --idx) {
 			if (obj->dl_handles[idx - 1] != NULL)
@@ -120,12 +154,114 @@ elf_dlclose(elf_object *obj)
 		}
 	}
 
+	/* unmap and free the object */
 	munmap(obj->relocbase, obj->relocsize);
 	free(obj);
 
-	cleanup_object_list(); /* XXX: this might come back to haunt us */
+	/* XXX: this might come back to haunt us */
+	/* instead of removing the object from the list like
+	 * a sane programmer, remove the whole list */
+	cleanup_object_list();
 
 	return 0;
+}
+
+elf_object*
+elf_dlopen(char *path)
+{
+	int fd;
+	struct stat st;
+	ssize_t nbytes;
+	elf_object *ret;
+	init_function init;
+	
+	union {
+		Elf_Ehdr hdr;
+		char buf[PAGE_LEN];
+	} u;
+
+	fd = open(path, O_RDONLY);
+	if (fd == -1) {
+		debug("%s: open(): %s\n", __func__, strerror(errno));
+		return NULL;
+	}
+
+	if (fstat(fd, &st) == -1) {
+		close(fd);
+		debugln("fstat() failed");
+		return NULL;
+	}
+
+	nbytes = pread(fd, u.buf, PAGE_LEN, 0);
+	if (nbytes == -1) {
+		close(fd);
+		debug("%s: pread(): %s\n", __func__, strerror(errno));
+		return NULL;
+	}
+
+	if (nbytes < (ssize_t)sizeof(Elf_Ehdr)) {
+		close(fd);
+		debugln("file too small");
+		return NULL;
+	}
+	
+	if (u.hdr.e_phentsize != sizeof(Elf_Phdr)) {
+		close(fd);
+		debugln("e_phentsize is not sizeof(Elf_Phdr)");
+		return NULL;
+	}
+
+	if (u.hdr.e_phoff + u.hdr.e_phnum * sizeof(Elf_Phdr) > (size_t)nbytes) {
+		close(fd);
+		debugln("something too large");
+		return NULL;
+	}
+
+	/* XXX: should check elf version and architecture here */
+
+	ret = (elf_object *)malloc(sizeof(elf_object));
+	if (ret == NULL) {
+		close(fd);
+		debug("%s: malloc(): %s\n", __func__, strerror(errno));
+		return NULL;
+	}
+
+	memset(ret, 0, sizeof(elf_object));
+
+	if (_elf_dlmmap(ret, fd, &u.hdr)) {
+		close(fd);
+		free(ret);
+		debugln("_elf_dlmmap()");
+		return NULL;
+	}
+
+	close(fd);
+	fixup_init();
+
+	if (digest_dynamic(ret)) {
+		debugln("digest_dynamic()");
+		munmap(ret->relocbase, ret->relocsize);
+		free(ret);
+		return NULL;
+	}
+
+	if (_elf_dlreloc(ret)) {
+		debugln("_elf_dlreloc()");
+		munmap(ret->relocbase, ret->relocsize);
+		free(ret);
+		return NULL;
+	}
+
+	/* grab and call the init function */
+	if (ret->init) {
+		init = (init_function)ret->init;
+		init();
+	}
+
+	/* add the new object to our list */
+	add_object_list(ret);
+
+	return ret;
 }
 
 void*
@@ -136,6 +272,11 @@ elf_dlsym(elf_object *obj, char *name)
 	
 	return _elf_dlsym(obj, name);
 }
+
+
+/**
+ * Local functions
+ */
 
 static void*
 _gnu_dlsym(elf_object *obj, char *name)
@@ -175,6 +316,8 @@ _gnu_dlsym(elf_object *obj, char *name)
 		return NULL;
 	}
 
+	/* look through the chain and try to find
+	 * the symbol */
 	hashval = &obj->chain_zero_gnu[bucket];
 	do {
 		if (((*hashval ^ hash) >> 1) == 0) {
@@ -238,6 +381,7 @@ _elf_dlsym(elf_object *obj, char *name)
 	hash = (unsigned long)(_elf_hash(name) & 0xffffffff);
 	symnum = (unsigned long)obj->buckets[hash % obj->nbuckets];
 
+	/* loop through the chain to find the symbol */
 	for (; symnum != SHN_UNDEF; symnum = obj->chains[symnum]) {
 		if (symnum >= obj->nchains) {
 			debug("%s: symnum (%lu) too large\n", __func__, symnum);
@@ -276,105 +420,11 @@ _elf_dlsym(elf_object *obj, char *name)
 	return NULL;
 }
 
-elf_object*
-elf_dlopen(char *path)
-{
-	int fd;
-	struct stat st;
-	ssize_t nbytes;
-	elf_object *ret;
-	init_function init;
-	
-	union {
-		Elf_Ehdr hdr;
-		char buf[PAGE_LEN];
-	} u;
-
-	fd = open(path, O_RDONLY);
-	if (fd == -1) {
-		debug("%s: open(): %s\n", __func__, strerror(errno));
-		return NULL;
-	}
-
-	if (fstat(fd, &st) == -1) {
-		close(fd);
-		debugln("fstat() failed");
-		return NULL;
-	}
-
-	nbytes = pread(fd, u.buf, PAGE_LEN, 0);
-	if (nbytes == -1) {
-		close(fd);
-		debug("%s: pread(): %s\n", __func__, strerror(errno));
-		return NULL;
-	}
-
-	if (nbytes < (ssize_t)sizeof(Elf_Ehdr)) {
-		close(fd);
-		debugln("file too small");
-		return NULL;
-	}
-	
-	if (u.hdr.e_phentsize != sizeof(Elf_Phdr)) {
-		close(fd);
-		debugln("e_phentsize is not sizeof(Elf_Phdr)");
-		return NULL;
-	}
-
-	if (u.hdr.e_phoff + u.hdr.e_phnum * sizeof(Elf_Phdr) > (size_t)nbytes) {
-		close(fd);
-		debugln("something too large");
-		return NULL;
-	}
-
-	ret = (elf_object *)malloc(sizeof(elf_object));
-	if (ret == NULL) {
-		close(fd);
-		debug("%s: malloc(): %s\n", __func__, strerror(errno));
-		return NULL;
-	}
-
-	memset(ret, 0, sizeof(elf_object));
-
-	if (_elf_dlmmap(ret, fd, &u.hdr)) {
-		close(fd);
-		free(ret);
-		debugln("_elf_dlmmap()");
-		return NULL;
-	}
-
-	close(fd);
-	fixup_init();
-
-	if (digest_dynamic(ret)) {
-		debugln("digest_dynamic()");
-		munmap(ret->relocbase, ret->relocsize);
-		free(ret);
-		return NULL;
-	}
-
-	if (_elf_dlreloc(ret)) {
-		debugln("_elf_dlreloc()");
-		munmap(ret->relocbase, ret->relocsize);
-		free(ret);
-		return NULL;
-	}
-
-	if (ret->init) {
-		init = (init_function)ret->init;
-		init();
-	}
-
-	add_object_list(ret);
-
-	return ret;
-}
-
 static int
 convert_prot(int flags)
 {
 	int prot = 0;
-
+	/* convert the ELF flags to mmap flags */
 	prot |= PROT_READ  * !!(flags & PF_R);
 	prot |= PROT_WRITE * !!(flags & PF_W);
 	prot |= PROT_EXEC  * !!(flags & PF_X);
@@ -451,6 +501,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 }
 #endif
 
+/* XXX: currently this function is useless */
 static void*
 dlopen_wrap(char *name, int mode)
 {
@@ -471,7 +522,6 @@ dlopen_wrap(char *name, int mode)
 	if (p != NULL)
 		*(p + 3) = '\0';
 	
-	debug("%s: dlopen_fixup: %s\n", __func__, buf);
 	return (void *)elf_dlopen(buf);
 }
 
@@ -522,18 +572,6 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	else
 		def = NULL;
 
-#if 0
-	if (def == NULL) {
-		symval = dlfunc(RTLD_DEFAULT, name);
-		if (symval == NULL)
-			break;
-		def = &sym_temp;
-		def_obj = &obj_main_0;
-		sym_temp.st_value = (Elf_Addr)symval;
-		break;
-	}
-#endif
-
 	if (def == NULL && ELF_ST_BIND(ref->st_info) == STB_WEAK) {
 		debug("%s: unreferenced weak object: %s\n", __func__, name);
 		def = &sym_zero;
@@ -542,7 +580,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 
 	if (def != NULL)
 		*out = def_obj;
-	else if (!in_plt){
+	else if (!in_plt) {
 		debug("%s: roc_slot missing: %d %d %s\n", __func__,
 			  ELF_ST_BIND(ref->st_info), ELF_ST_TYPE(ref->st_info),
 			  name);
@@ -705,6 +743,8 @@ digest_dynamic(elf_object *obj)
 		dl_count = 0;
 	}
 
+	/* find all the needed libraries and "open" them
+	 * (XXX: we don't actually open it...) */
 	for (dynp = obj->dynamic; dynp->d_tag != DT_NULL; ++dynp) {
 		char *strp;
 		switch (dynp->d_tag) {
@@ -731,12 +771,12 @@ digest_dynamic(elf_object *obj)
 		obj->pltrelsize = 0;
 	}
 
-#if 1
 	if (obj->flags & TF_HASH)
 		obj->dynsymcount = obj->nchains;
 	else if (obj->flags & TF_GNU_HASH) {
 		Elf_Hashelt *hashval;
 		unsigned long i;
+		
 		obj->dynsymcount = 0;
 		for (i = 0; i < obj->nbuckets_gnu; ++i) {
 			if (!obj->buckets_gnu[i])
@@ -748,7 +788,7 @@ digest_dynamic(elf_object *obj)
 		}
 		obj->dynsymcount += obj->symndx_gnu;
 	}
-#endif
+
 	return 0;
 }
 
@@ -1012,10 +1052,6 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 	return 0;
 }
 
-static void free_object_list(void *data){}
-static void fixup_init(void){}
-static void _rtld_fixup_start(void){}
-
 static void*
 fixup_lookup(char *name)
 {
@@ -1065,14 +1101,14 @@ add_object_list(elf_object *obj)
 	if (object_list == NULL) {
 		object_list = ll_new_list();
 		if (object_list == NULL) {
-			debugln("coulsn't mallocate");
+			debugln("couldn't allocate new object_list");
 			return;
 		}
 	}
 
 	tmp = ll_new_node((void*)obj);
 	if (tmp == NULL) {
-		debugln("couldn't mallocate node");
+		debugln("couldn't allocate new list node");
 		return;
 	}
 	
