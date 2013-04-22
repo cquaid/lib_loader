@@ -91,12 +91,6 @@ struct _elf_object {
 };
 typedef struct _elf_object elf_object;
 
-struct _anchor {
-	char *name;
-	void *symbol;
-};
-typedef struct _anchor Anchor;
-
 extern void add_fixup_list(List *list);
 extern void cleanup_fixup_list(void);
 

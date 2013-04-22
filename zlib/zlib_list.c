@@ -7,7 +7,7 @@
 
 #include "zlib_list.h"
 #include "../list/list.h"
-#include "../rtld/rtld.h"
+#include "../rtld/anchor.h"
 
 static Anchor alist[] = {
 #define a(x) { #x, x },	

@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "rtld.h"
+#include "anchor.h"
 #include "../debug.h"
 #include "../list/list.h"
 
@@ -42,10 +43,9 @@ static void free_object_list(void *data);
 static void cleanup_object_list(void);
 static void fixup_init(void);
 static void _rtld_fixup_start(void);
-static void* fixup_lookup(char *name, bool in_plt);
+static void* fixup_lookup(char *name);
 static Elf_Sym *find_symdef(unsigned long symnum, elf_object *ref_obj,
-							elf_object **out, bool in_plt,
-							void *cache);
+							elf_object **out, bool in_plt, void *cache);
 static int convert_prot(int flags);
 #if 0
 static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
@@ -431,7 +431,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 	
 	where = (Elf_Addr *)(obj->relocbase + rel->r_offset);
 
-	def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj, true, NULL);
+	def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj, NULL);
 	if (def == NULL) {
 		def = obj->symtab + ELF_R_SYM(rel->r_info);
 		debug("%s: symbol missing: %s\n", __func__, obj->strtab + def->st_name);
@@ -503,7 +503,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 			return NULL; /* XXX: should fail/exit */
 		}
 	}
-	else if ((symval = fixup_lookup(name, in_plt)) != NULL) {
+	else if ((symval = fixup_lookup(name)) != NULL) {
 		def = &sym_temp;
 		def_obj = &obj_main_0;
 		sym_temp.st_value = (Elf_Addr)symval;
@@ -538,14 +538,14 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 
 	if (def != NULL)
 		*out = def_obj;
-	else if (!in_plt) {
+	else if (!in_plt){
 		debug("%s: roc_slot missing: %d %d %s\n", __func__,
 			  ELF_ST_BIND(ref->st_info), ELF_ST_TYPE(ref->st_info),
 			  name);
 	}
 
 	if (def == NULL && !in_plt) {
-		debug("%s: symbol: %d %s\n", __func__, (int)in_plt, name);
+		debug("%s: symbol: %s\n", __func__, name);
 		return NULL; /* XXX: should fail/exit */
 	}
 
@@ -1013,12 +1013,10 @@ static void fixup_init(void){}
 static void _rtld_fixup_start(void){}
 
 static void*
-fixup_lookup(char *name, bool in_plt)
+fixup_lookup(char *name)
 {
 	Anchor *a;
 	ListNode *c;
-
-	(void)in_plt;
 	
 	if (fixup_list == NULL && object_list == NULL) {
 		debug("%s: WARN: `%s' not found\n", __func__, name);
