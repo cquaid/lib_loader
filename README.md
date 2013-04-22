@@ -9,7 +9,7 @@ The test/zlib/zlib_list.c has a good example of how to do the fixup.
 
 There isn't an install rule yet, so to use the tests you'll need to do
 <pre>
-LD_LIBRARY_PATH=$(PWD)/lib:$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
 </pre>
 before running the tests (assuming you're in the root source directory)
 
