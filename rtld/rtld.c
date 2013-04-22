@@ -35,6 +35,31 @@ static elf_object obj_main_0;
 static List *fixup_list = NULL;
 static List *object_list = NULL;
 
+static void fixup_node_free(void *data);
+static void fixup_list_free(void *data);
+static void add_object_list(elf_object *obj);
+static void free_object_list(void *data);
+static void cleanup_object_list(void);
+static void fixup_init(void);
+static void _rtld_fixup_start(void);
+static void* fixup_lookup(char *name, bool in_plt);
+static Elf_Sym *find_symdef(unsigned long symnum, elf_object *ref_obj,
+							elf_object **out, bool in_plt,
+							void *cache);
+static int convert_prot(int flags);
+#if 0
+static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
+#endif
+static void *dlopen_wrap(char *name, int mode);
+static int digest_dynamic(elf_object *obj);
+static int _elf_dlreloc(elf_object *obj);
+static int _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
+static uint32_t _elf_hash(char *name);
+static uint32_t _gnu_hash(char *name);
+static void* _gnu_dlsym(elf_object *obj, char *name);
+static void* _elf_dlsym(elf_object *obj, char *name);
+
+
 void
 add_fixup_list(List *list)
 {
@@ -60,129 +85,12 @@ add_fixup_list(List *list)
 	ll_push_node(fixup_list, tmp);
 }
 
-static void
-fixup_node_free(void *data)
-{
-	free(data);
-}
-
-static void
-fixup_list_free(void *data)
-{
-	ll_delete_list((List *)data, fixup_node_free);
-}
-
 void
 cleanup_fixup_list(void)
 {
 	ll_delete_list(fixup_list, fixup_list_free);
 	fixup_list = NULL;
 }
-
-static void
-add_object_list(elf_object *obj)
-{
-	ListNode *tmp;
-
-	if (obj == NULL)
-		return;
-
-	if (object_list == NULL) {
-		object_list = ll_new_list();
-		if (object_list == NULL) {
-			debugln("coulsn't mallocate");
-			return;
-		}
-	}
-
-	tmp = ll_new_node((void*)obj);
-	if (tmp == NULL) {
-		debugln("couldn't mallocate node");
-		return;
-	}
-	
-	ll_push_node(object_list, tmp);
-}
-static void free_object_list(void *data){}
-static void
-cleanup_object_list(void)
-{
-	ll_delete_list(object_list, free_object_list);
-	object_list = NULL;
-}
-
-static void fixup_init(void){}
-static void _rtld_fixup_start(void){}
-static void*
-fixup_lookup(char *name, bool in_plt)
-{
-	Anchor *a;
-	ListNode *c;
-
-	(void)in_plt;
-	
-	if (fixup_list == NULL && object_list == NULL) {
-		debug("%s: WARN: `%s' not found\n", __func__, name);
-		return NULL;
-	}
-	
-	if (fixup_list == NULL)
-		goto object_search;
-
-	c = fixup_list->head;
-	for (; c != NULL; c = c->next) {
-		List *l = c->data;
-		ListNode *n;
-		
-		if (l == NULL)
-			continue;
-		
-		n = l->head;
-		for (; n != NULL; n = n->next) {
-			a = n->data;
-			if (a == NULL)
-				continue;
-
-			if (!strcmp(a->name, name)) {
-				debug("%s: INFO: `%s' found in fixup_list\n", __func__, name);
-				return a->symbol;
-			}
-		}
-	}
-
-object_search:
-	if (object_list == NULL)
-		goto out;
-
-	c = object_list->head;
-	for (; c != NULL; c = c->next) {
-		void *d = elf_dlsym((elf_object *)(c->data), name);
-		if (d != NULL) {
-			debug("%s: INFO: `%s' found in object_list\n", __func__, name);
-			return d;
-		}
-	}
-
-out:
-	debug("%s: WARN: `%s' not found\n", __func__, name);
-	return NULL;
-}
-
-static Elf_Sym *find_symdef(unsigned long symnum, elf_object *ref_obj,
-							elf_object **out, bool in_plt,
-							void *cache);
-static int convert_prot(int flags);
-#if 0
-static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
-#endif
-static void *dlopen_wrap(char *name, int mode);
-static int digest_dynamic(elf_object *obj);
-static int _elf_dlreloc(elf_object *obj);
-static int _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
-static uint32_t _elf_hash(char *name);
-static uint32_t _gnu_hash(char *name);
-static void* _gnu_dlsym(elf_object *obj, char *name);
-static void* _elf_dlsym(elf_object *obj, char *name);
 
 int
 elf_dlclose(elf_object *obj)
@@ -1100,3 +1008,105 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 	return 0;
 }
 
+static void free_object_list(void *data){}
+static void fixup_init(void){}
+static void _rtld_fixup_start(void){}
+
+static void*
+fixup_lookup(char *name, bool in_plt)
+{
+	Anchor *a;
+	ListNode *c;
+
+	(void)in_plt;
+	
+	if (fixup_list == NULL && object_list == NULL) {
+		debug("%s: WARN: `%s' not found\n", __func__, name);
+		return NULL;
+	}
+	
+	if (fixup_list == NULL)
+		goto object_search;
+
+	c = fixup_list->head;
+	for (; c != NULL; c = c->next) {
+		List *l = c->data;
+		ListNode *n;
+		
+		if (l == NULL)
+			continue;
+		
+		n = l->head;
+		for (; n != NULL; n = n->next) {
+			a = n->data;
+			if (a == NULL)
+				continue;
+
+			if (!strcmp(a->name, name)) {
+				debug("%s: INFO: `%s' found in fixup_list\n", __func__, name);
+				return a->symbol;
+			}
+		}
+	}
+
+object_search:
+	if (object_list == NULL)
+		goto out;
+
+	c = object_list->head;
+	for (; c != NULL; c = c->next) {
+		void *d = elf_dlsym((elf_object *)(c->data), name);
+		if (d != NULL) {
+			debug("%s: INFO: `%s' found in object_list\n", __func__, name);
+			return d;
+		}
+	}
+
+out:
+	debug("%s: WARN: `%s' not found\n", __func__, name);
+	return NULL;
+}
+
+static void
+fixup_node_free(void *data)
+{
+	free(data);
+}
+
+static void
+fixup_list_free(void *data)
+{
+	ll_delete_list((List *)data, fixup_node_free);
+}
+
+static void
+add_object_list(elf_object *obj)
+{
+	ListNode *tmp;
+
+	if (obj == NULL)
+		return;
+
+	if (object_list == NULL) {
+		object_list = ll_new_list();
+		if (object_list == NULL) {
+			debugln("coulsn't mallocate");
+			return;
+		}
+	}
+
+	tmp = ll_new_node((void*)obj);
+	if (tmp == NULL) {
+		debugln("couldn't mallocate node");
+		return;
+	}
+	
+	ll_push_node(object_list, tmp);
+}
+
+static void
+cleanup_object_list(void)
+{
+	ll_delete_list(object_list, free_object_list);
+	object_list = NULL;
+}
