@@ -1,5 +1,5 @@
-#ifndef __H_RTLD__
-#define __H_RTLD__
+#ifndef _H_RTLD
+#define _H_RTLD
 
 #include <elf.h>
 #include "../list/list.h"
@@ -104,4 +104,4 @@ extern int elf_dlclose(elf_object *obj);
 extern void* elf_dlsym(elf_object *obj, char *name);
 extern elf_object* elf_dlopen(char *path);
 
-#endif /* __H_RTLD__ */
+#endif /* _H_RTLD */
