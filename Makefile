@@ -22,6 +22,7 @@ lib_loader:
 	@${CC} ${CFLAGS} -c ${SRC_FILES}
 	@echo CC -o ${LIB_NAME}
 	@${CC} ${LDFLAGS} -o ${LIB_NAME} ${OBJECTS}
+	@mkdir -p lib
 	@mv ${LIB_NAME} lib/${LIB_NAME}
 	@cp lib/${LIB_NAME} lib/lib${LIB_NAME}
 test:
@@ -31,7 +32,7 @@ test:
 clean:
 	@echo "cleaning"
 	@rm ${OBJECTS}
-	@rm lib/${LIB_NAME} lib/lib${LIB_NAME}
+	@rm -rf lib
 	@cd test && make clean
 
 .PHONY: all lib_loader test clean
