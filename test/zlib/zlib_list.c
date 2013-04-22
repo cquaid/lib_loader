@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "zlib_list.h"
-#include "lib_loader.h"
+#include "librtld.h"
 
 static Anchor alist[] = {
 #define a(x) { #x, x },	

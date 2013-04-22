@@ -2,7 +2,7 @@ SRC_DIR = src
 SRC_FILES = ${SRC_DIR}/rtld.c ${SRC_DIR}/list.c ${SRC_DIR}/bintree.c
 OBJECTS = rtld.o list.o bintree.o
 
-LIB_NAME = lib_loader.so
+LIB_NAME = librtld.so
 INCLUDE = include
 
 LDFLAGS = -shared -Wl,-soname,${LIB_NAME}
@@ -15,16 +15,15 @@ else
 DEBUG_OPT=
 endif
 
-all: lib_loader test
+all: librtld test
 
-lib_loader:
+librtld:
 	@echo CC -c ${SRC_FILES}
 	@${CC} ${CFLAGS} -c ${SRC_FILES}
 	@echo CC -o ${LIB_NAME}
 	@${CC} ${LDFLAGS} -o ${LIB_NAME} ${OBJECTS}
 	@mkdir -p lib
 	@mv ${LIB_NAME} lib/${LIB_NAME}
-	@cp lib/${LIB_NAME} lib/lib${LIB_NAME}
 test:
 	@echo "building test objects"
 	@cd test && make ${DEBUG_OPT}
@@ -35,4 +34,4 @@ clean:
 	@rm -rf lib
 	@cd test && make clean
 
-.PHONY: all lib_loader test clean
+.PHONY: all librtld test clean

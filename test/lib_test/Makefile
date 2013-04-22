@@ -7,7 +7,7 @@ BINARY = test_loader
 LIB_NAME = lib.so
 INCLUDE = ../../include
 
-LIB = lib_loader
+LIB = rtld
 
 CFLAGS = -std=gnu99 -Wall -I${INCLUDE}
 LDFLAGS = -L ../../lib -l${LIB}

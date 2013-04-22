@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "lib_loader.h"
+#include "librtld.h"
 #include "zlib_list.h"
 #include "zlib_stuff.h"
 

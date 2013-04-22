@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lib_loader.h"
+#include "librtld.h"
 
 Anchor a = { "malloc", malloc };
 
