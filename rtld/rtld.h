@@ -80,8 +80,7 @@ struct _elf_object {
 	unsigned long dl_count;
 	void **dl_handles;
 
-/* FUCK YOU GNU HASH! */
-/* Makin' me do extra work 'n' shit */
+	/* Everything required for GNU Hash */
 	unsigned long nbuckets_gnu;
 	unsigned long symndx_gnu;
 	unsigned long maskwords_bm_gnu;
