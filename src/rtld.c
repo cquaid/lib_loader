@@ -70,9 +70,9 @@ static void* dlopen_wrap(char *name, int mode);
 static void* fixup_lookup(char *name);
 
 static int   _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
-static int   _elf_dlreloc(elf_object *obj)
+static int   _elf_dlreloc(elf_object *obj);
 
-static int   _elf_dlsym(elf_object *obj, char *name);
+static void* _elf_dlsym(elf_object *obj, char *name);
 static void* _gnu_dlsym(elf_object *obj, char *name);
 
 static uint32_t _elf_hash(char *name);
@@ -113,7 +113,7 @@ add_fixup_anchor(Anchor *anchor)
 		debug("%s: replacing `%s' with new definition\n",
 			  __func__, anchor->name);
 		/* replace the old anchor with the new one */
-		memcpy(&tmp1->anchor, anchor, sizeof(Anchor));
+		memcpy(&tmp->anchor, anchor, sizeof(Anchor));
 		return;
 	}
 
