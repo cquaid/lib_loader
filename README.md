@@ -23,8 +23,8 @@ To test libz_loader:
 <pre>
  modify test/zlib/libz_loader.c to include the path to your libz.so
  run make
- to deflate: test zlib/libz_loader < to_compress > ouput_file
- to inflate: test/zlib/libz_loader -d < compressed_file > decompressed_file
+ to deflate: test zlib/libz_loader \< to_compress \> ouput_file
+ to inflate: test/zlib/libz_loader -d \< compressed_file \> decompressed_file
 </pre>
 
 Things that need to be done:
