@@ -28,6 +28,7 @@ main(int argc, char *argv[])
 	cs = (create_string)elf_dlsym(elf, "create_string");
 	if (cs == NULL) {
 		fprintf(stderr, "elf_dlsym('create_string') failed\n");
+		elf_dlclose(elf);
 		return 1;
 	}
 
