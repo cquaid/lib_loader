@@ -562,13 +562,11 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 		def_obj = &obj_main_0;
 		sym_temp.st_value = (Elf_Addr)symval;
 	}
-#if 0
 	else if((symval = elf_dlsym(ref_obj, name)) != NULL) {
 		def = &sym_temp;
 		def_obj = &obj_main_0;
 		sym_temp.st_value = (Elf_Addr)symval;
 	}
-#endif
 	else
 		def = NULL;
 
