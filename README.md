@@ -7,14 +7,15 @@ It mostly works... it requires a number of "fixups" to be defined before loading
 
 The way the fixup function code works you can substitute a function for another.
 If you're library requires the malloc symbol and you want to hook it with something else:
-    #include "librtld.h"
-	/* ... */
-	void* my_malloc(size_t l){ /* ... */}
-	/* ... */
-	Anchor malloc_fixup = { "malloc", my_malloc };
-	/* ... */
-	add_fixup_anchor(&malloc_fixup);
-
+<pre>
+ #include "librtld.h"
+ /* ... */
+ void* my_malloc(size_t l){ /* ... */}
+ /* ... */
+ Anchor malloc_fixup = { "malloc", my_malloc };
+ /* ... */
+ add_fixup_anchor(&malloc_fixup);
+</pre>
 
 The test/zlib/zlib_list.c has a good example of how to do the fixup.
 
