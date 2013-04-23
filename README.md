@@ -45,3 +45,12 @@ Things that need to be done:
  * Refactor the code
  * Test everything
 </pre>
+
+If there's an issue where you can't initialize an Anchor for stdout, stdin, or stderr:
+<pre>
+ Anchor a = { "stdin", NULL };
+ /* ... */
+ a.symbol = (void *)stdin;
+</pre>
+The reason for this is the standard FILE*s arn't required to be static but they have to be,
+to be used in an initializer.
