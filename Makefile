@@ -24,6 +24,7 @@ librtld:
 	@${CC} ${LDFLAGS} -o ${LIB_NAME} ${OBJECTS}
 	@mkdir -p lib
 	@mv ${LIB_NAME} lib/${LIB_NAME}
+
 test:
 	@echo "building test objects"
 	@cd test && make ${DEBUG_OPT}

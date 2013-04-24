@@ -66,7 +66,6 @@ static void  add_object_list(elf_object *obj);
 static void  cleanup_object_list(void);
 static int   convert_prot(int flags);
 static int   digest_dynamic(elf_object *obj);
-static void* dlopen_wrap(char *name, int mode);
 static void* fixup_lookup(char *name);
 
 static int   _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr);
@@ -81,6 +80,7 @@ static uint32_t _gnu_hash(char *name);
 static Elf_Sym* find_symdef(unsigned long symnum, elf_object *ref_obj,
 							elf_object **out, bool in_plt, void *cache);
 #if 0
+static void* dlopen_wrap(char *name, int mode);
 static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
 #endif
 
@@ -502,6 +502,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 #endif
 
 /* XXX: currently this function is useless */
+#if 0
 static void*
 dlopen_wrap(char *name, int mode)
 {
@@ -524,6 +525,7 @@ dlopen_wrap(char *name, int mode)
 	
 	return (void *)elf_dlopen(buf);
 }
+#endif
 
 static Elf_Sym*
 find_symdef(unsigned long symnum, elf_object *ref_obj,
@@ -585,7 +587,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	}
 
 	if (def == NULL && !in_plt) {
-		debug("%s: symbol: %s\n", __func__, name);
+		debug("%s: ERR: symbol `%s' not found\n", __func__, name);
 		return NULL; /* XXX: should fail/exit */
 	}
 
@@ -741,6 +743,7 @@ digest_dynamic(elf_object *obj)
 		dl_count = 0;
 	}
 
+#if 0
 	/* find all the needed libraries and "open" them
 	 * (XXX: we don't actually open it...) */
 	for (dynp = obj->dynamic; dynp->d_tag != DT_NULL; ++dynp) {
@@ -761,6 +764,7 @@ digest_dynamic(elf_object *obj)
 			break;
 		}
 	}
+#endif
 
 	if (plttype == DT_RELA) {
 		obj->pltrela = (Elf_Rela *)obj->pltrel;
@@ -1057,7 +1061,9 @@ fixup_lookup(char *name)
 	ListNode *c;
 	
 	if (fixup_tree == NULL && object_list == NULL) {
+#if 0
 		debug("%s: WARN: `%s' not found\n", __func__, name);
+#endif
 		return NULL;
 	}
 	
@@ -1084,7 +1090,9 @@ object_search:
 	}
 
 out:
+#if 0
 	debug("%s: WARN: `%s' not found\n", __func__, name);
+#endif
 	return NULL;
 }
 
