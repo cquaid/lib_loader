@@ -51,6 +51,18 @@ static BinTree *fixup_tree = NULL;
 static List *object_list = NULL;
 
 /**
+ * External functions
+ */
+extern int convert_prot(int flags);
+extern uint32_t _elf_hash(char *name);
+extern uint32_t _gnu_hash(char *name);
+#if 0
+extern void* dlopen_wrap(char *name, int mode);
+extern Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
+#endif
+
+
+/**
  * Undefined functions
  */
 
@@ -64,7 +76,6 @@ static void _rtld_fixup_start(void){}
 
 static void  add_object_list(elf_object *obj);
 static void  cleanup_object_list(void);
-static int   convert_prot(int flags);
 static int   digest_dynamic(elf_object *obj);
 static void* fixup_lookup(char *name);
 
@@ -74,15 +85,8 @@ static int   _elf_dlreloc(elf_object *obj);
 static void* _elf_dlsym(elf_object *obj, char *name);
 static void* _gnu_dlsym(elf_object *obj, char *name);
 
-static uint32_t _elf_hash(char *name);
-static uint32_t _gnu_hash(char *name);
-
 static Elf_Sym* find_symdef(unsigned long symnum, elf_object *ref_obj,
 							elf_object **out, bool in_plt, void *cache);
-#if 0
-static void* dlopen_wrap(char *name, int mode);
-static Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
-#endif
 
 
 /**
@@ -419,113 +423,6 @@ _elf_dlsym(elf_object *obj, char *name)
 
 	return NULL;
 }
-
-static int
-convert_prot(int flags)
-{
-	int prot = 0;
-	/* convert the ELF flags to mmap flags */
-	prot |= PROT_READ  * !!(flags & PF_R);
-	prot |= PROT_WRITE * !!(flags & PF_W);
-	prot |= PROT_EXEC  * !!(flags & PF_X);
-
-	return prot;
-}
-
-static uint32_t
-_elf_hash(char *name)
-{
-	unsigned char *p;
-	uint32_t h, g;
-
-	p = (unsigned char *)name;
-	for (h = 0; *p != '\0'; ++p) {
-		h = (h << 4) + *p;
-		if ((g = h & 0xf0000000))
-			h ^= g >> 24;
-		h &= ~g;
-	}
-
-	return h;
-}
-
-static uint32_t
-_gnu_hash(char *name)
-{
-	unsigned char *p;
-	uint_fast32_t h;
-	
-	p = (unsigned char *)name;
-	for (h = 5381; *p != '\0'; ++p)
-		h = ((h << 5) + h) + *p;
-	
-	return (uint32_t)(h & 0xffffffff);
-}
-
-#if 0
-static Elf_Addr
-_rtld_fixup(elf_object *obj, Elf_Off reloff)
-{
-	char *name;
-	Elf_Sym *def;
-	Elf_Addr *where;
-	Elf_Rel *rel;
-	Elf_Sym *symp;
-	elf_object *def_obj;
-
-	if (obj == NULL) {
-		debug("%s: obj is null\n", __func__);
-		return 0; /* XXX: should fail/exit */
-	}
-
-	if (obj->pltrel != NULL)
-		rel = (Elf_Rel *)((char *)obj->pltrel + reloff);
-	else
-		rel = (Elf_Rel *)((char *)obj->pltrela + reloff);
-	
-	where = (Elf_Addr *)(obj->relocbase + rel->r_offset);
-
-	def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj, NULL);
-	if (def == NULL) {
-		def = obj->symtab + ELF_R_SYM(rel->r_info);
-		debug("%s: symbol missing: %s\n", __func__, obj->strtab + def->st_name);
-		return 0; /* XXX: should fail/exit */
-	}
-
-	symp = obj->symtab + ELF_R_SYM(rel->r_info);
-	name = obj->strtab + symp->st_name;
-
-	*where = (Elf_Addr)(def_obj->relocbase + def->st_value);
-
-	return *where;
-}
-#endif
-
-/* XXX: currently this function is useless */
-#if 0
-static void*
-dlopen_wrap(char *name, int mode)
-{
-	void *ret;
-	char buf[1024];
-	char *p;
-
-	(void)mode;
-
-	ret = (void *)elf_dlopen(name);	
-	if (ret != NULL)
-		return ret;
-	
-	strncpy(buf, name, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
-
-	p = strstr(buf, ".so");
-	if (p != NULL)
-		*(p + 3) = '\0';
-	
-	return (void *)elf_dlopen(buf);
-}
-#endif
 
 static Elf_Sym*
 find_symdef(unsigned long symnum, elf_object *ref_obj,
