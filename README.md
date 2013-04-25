@@ -10,11 +10,26 @@ If you're library requires the malloc symbol and you want to hook it with someth
 <pre>
  #include "librtld.h"
  /* ... */
- void* my_malloc(size_t l){ /* ... */}
+ void* my_malloc(size_t l){ /* ... */ }
  /* ... */
  Anchor malloc_fixup = { "malloc", my_malloc };
  /* ... */
  add_fixup_anchor(&malloc_fixup);
+</pre>
+
+To use a list of anchors, add_fixup_anchor_list expects { NULL, NULL } to
+be the last Anchor in the list:
+<pre>
+ #include &lt;stdlib.h&gt;
+ #include "librtld.h"
+ /* ... */
+ Anchor anchor_list[] = {
+	{ "malloc", malloc },
+	{ "free", free },
+    { NULL, NULL }
+ };
+ /* ... */
+ add_fixup_anchor_list(anchor_list);
 </pre>
 
 The test/zlib/zlib_list.c has a good example of how to do the fixup.
