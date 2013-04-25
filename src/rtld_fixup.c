@@ -15,6 +15,18 @@ static List *object_list = NULL;
  */
 static void free_object_list(void *data){}
 
+void
+add_fixup_anchor_list(Anchor *anchor_list)
+{
+	Anchor *a;
+	
+	if (anchor_list == NULL)
+		return;
+	
+	a = anchor_list;
+	while (a->symbol != NULL && a->name != NULL)
+		add_fixup_anchor(a++);
+}
 
 void
 add_fixup_anchor(Anchor *anchor)

@@ -71,6 +71,15 @@ struct _elf_object {
 	Elf_Addr init;
 	Elf_Addr fini;
 
+	Elf_Addr preinit_array;
+	unsigned long preinit_array_len;
+	
+	Elf_Addr init_array;
+	unsigned long init_array_len;
+
+	Elf_Addr fini_array;
+	unsigned long fini_array_len;
+
 	Elf_Dyn *dynamic;
 	unsigned long dynsymcount;
 
@@ -92,6 +101,7 @@ struct _elf_object {
 typedef struct _elf_object elf_object;
 
 extern void add_fixup_anchor(Anchor *anchor);
+extern void add_fixup_anchor_list(Anchor *anchor_list);
 extern int elf_dlclose(elf_object *obj);
 extern void* elf_dlsym(elf_object *obj, char *name);
 extern elf_object* elf_dlopen(char *path);

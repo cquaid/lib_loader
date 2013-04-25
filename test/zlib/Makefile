@@ -1,6 +1,6 @@
 SRC_DIR = .
-SRC_FILES = ${SRC_DIR}/zlib_list.c ${SRC_DIR}/libz_loader.c
-OBJECTS = zlib_list.o libz_loader.o
+SRC_FILES = ${SRC_DIR}/libz_loader.c
+OBJECTS = libz_loader.o
 
 LIB = rtld
 INCLUDE = ../../include

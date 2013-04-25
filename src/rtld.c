@@ -109,6 +109,16 @@ elf_dlclose(elf_object *obj)
 		fini();
 	}
 
+	/* call the fini functions in the list */
+	if (obj->fini_array) {
+		unsigned long i;
+		Elf_Addr *fini_array = (Elf_Addr *)obj->fini_array;
+		for (i = 0; i < obj->fini_array_len; ++i) {
+			fini = (fini_function)fini_array[i];
+			fini();
+		}
+	}
+
 	/* XXX: currently this doesn't actually do anything */
 	/* close all loaded dependents and free the handles list */
 	if (obj->dl_count > 0 && obj->dl_handles != NULL) {
@@ -217,10 +227,35 @@ elf_dlopen(char *path)
 		return NULL;
 	}
 
+	/* call the preinit functions...
+	 * I don't actually know how this works...
+	 * hope that I'm right? */
+	if (ret->preinit_array) {
+		unsigned long i;
+		Elf_Addr *preinit_array = (Elf_Addr *)ret->preinit_array;
+		for (i = 0; i < ret->preinit_array_len; ++i) {
+			init = (init_function)preinit_array[i];
+			init();
+		}
+		debugln("preinit functions called");
+	}
+
 	/* grab and call the init function */
 	if (ret->init) {
 		init = (init_function)ret->init;
 		init();
+	}
+
+	/* call the init functions from the array
+	 * not really sure if I'm suppose to call
+	 * both the init and the init_array or not... */
+	if (ret->init_array) {
+		unsigned long i;
+		Elf_Addr *init_array = (Elf_Addr *)ret->init_array;
+		for (i = 0; i < ret->init_array_len; ++i) {
+			init = (init_function)init_array[i];
+			init();
+		}
 	}
 
 	/* add the new object to our list */
@@ -538,34 +573,51 @@ digest_dynamic(elf_object *obj)
 			obj->strsize = dynp->d_un.d_val;
 			break;
 		
-		case DT_SYMENT:
-			/* ignoring for now
-			 * size of the symbol entry table
-			 * might be a good idea to store this off? */
+		case DT_INIT_ARRAY:
+			/*  if there's more than one init function
+			 * this is the address to the array of those
+			 * functions. */
+			obj->init_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 		
-		case DT_INIT_ARRAY:
-			/* XXX: if there's more than one init function
-			 * this is the address to the array of those
-			 * functions. This shouldn't be ignored... */
 		case DT_FINI_ARRAY:
-			/* XXX: if there's more than one fini function
+			/* if there's more than one fini function
 			 * this is teh address to the start of the array
-			 * of fini functions.  This shouldn't be ignored... */
+			 * of fini functions. */
+			 obj->fini_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
+			 break;
+		
 		case DT_INIT_ARRAYSZ:
-			/* size of the init function array (in bytes)
-			 * sizeof table = dynp->d_un.d_val / sizeof(Elf_Addr) */
-		case DT_FINI_ARRAYSZ:
-			/* size of the fini function array (in bytes) */
-		case DT_TEXTREL:
-			/* if exists, relocation might modify the .text section */
-		case DT_PREINIT_ARRAY:
-			/* array of functions to be called BEFORE the init functions */
-		case DT_PREINIT_ARRAYSZ:
-			/* size in bytes of the preinit array */
-			/* ignoring? */
+			/* size of the init function array (in bytes) */
+			obj->init_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
 			break;
 
+		case DT_FINI_ARRAYSZ:
+			/* size of the fini function array (in bytes) */
+			obj->fini_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
+			break;
+		
+		
+		case DT_PREINIT_ARRAY:
+			/* array of functions to be called BEFORE the init functions */
+			obj->preinit_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
+			break;
+		
+		case DT_PREINIT_ARRAYSZ:
+			/* size in bytes of the preinit array */
+			obj->preinit_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
+			break;
+		
+		case DT_SYMENT:
+			/* Ignoring for now
+			 * size of the symbol entry table
+			 * might be a good idea to store this off? */
+		case DT_TEXTREL:
+			/* if this section exists, relocation might modify the
+			 * .text segment */
+		case DT_FLAGS:
+			/* flags for the object being loaded
+			 * nothing we really need to worry about... yet. */
 		case DT_DEBUG:
 			/* we don't need no strinkin' debug symbols */
 			break;
