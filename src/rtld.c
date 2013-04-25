@@ -780,7 +780,7 @@ _elf_dlreloc(elf_object *obj)
 				return -1; /* XXX: should fail/exit */
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value + rela->r_addend);
-			break; /* XXX: should this fall through? */
+			break;
 		
 		case R_X86_64_GLOB_DAT:
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &def_obj,
@@ -905,10 +905,6 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 
 	for (phdr = phdrinit; phdr < phdrfini; ++phdr) {
 		switch (phdr->p_type) {
-		case PT_INTERP:
-			/* ignore */
-			break;
-
 		case PT_LOAD:
 			if (!pltloadfirst)
 				base_vaddr = TRUNC_PAGE(phdr->p_vaddr);
@@ -916,18 +912,13 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 			++pltloadfirst;
 			break;
 
-		case PT_PHDR:
-			/* ignore */
-			break;
-
 		case PT_DYNAMIC:
 			phdyn = phdr;
 			break;
 
+		case PT_INTERP:
+		case PT_PHDR:
 		case PT_TLS:
-			/* ignore */
-			break;
-
 		default:
 			/* ignore */
 			break;
