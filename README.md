@@ -32,7 +32,7 @@ be the last Anchor in the list:
  add_fixup_anchor_list(anchor_list);
 </pre>
 
-The test/zlib/zlib_list.c has a good example of how to do the fixup.
+The test/zlib/lizb_loader.c has a good example of how to do the fixup.
 
 There isn't an install rule yet, so to use the tests you'll need to do
 <pre>
