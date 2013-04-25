@@ -1,6 +1,8 @@
 SRC_DIR = src
-SRC_FILES = ${SRC_DIR}/rtld_helpers.c ${SRC_DIR}/rtld.c ${SRC_DIR}/list.c ${SRC_DIR}/bintree.c
-OBJECTS = rtld.o list.o bintree.o rtld_helpers.o
+SRC_FILES =  ${SRC_DIR}/rtld_helpers.c ${SRC_DIR}/rtld_fixup.c ${SRC_DIR}/rtld.c
+SRC_FILES += ${SRC_DIR}/list.c ${SRC_DIR}/bintree.c
+OBJECTS =  rtld_helpers.o rtld_fixup.o rtld.o
+OBJECTS += list.o bintree.o
 
 LIB_NAME = librtld.so
 INCLUDE = include
