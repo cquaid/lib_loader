@@ -58,6 +58,7 @@ extern uint32_t _gnu_hash(char *name);
 extern void* dlopen_wrap(char *name, int mode);
 extern Elf_Addr _rtld_fixup(elf_object *obj, Elf_Off reloff);
 #endif
+
 /* rtld_fixup.c */
 extern void add_fixup_anchor(Anchor *anchor);
 extern void add_object_list(elf_object *obj);
@@ -469,23 +470,30 @@ digest_dynamic(elf_object *obj)
 	for (dynp = obj->dynamic; dynp->d_tag != DT_NULL; ++dynp) {
 		switch (dynp->d_tag) {
 		case DT_NEEDED:
+			/* incremend the dl_count so we can
+			 * allocate the handlers later. */
 			++dl_count;
 			break;
 
 		case DT_SONAME:
-			/* ignoring */
+			/* ignoring for now, obj->strtab may not have been
+			 * found yet. Better not to reference a value shifted
+			 * from a null pointer. */
 			break;
 
 		case DT_PLTRELSZ:
+			/* size of relocation entries in PLT */
 			obj->pltrelsize = dynp->d_un.d_val;
 			break;
 
 		case DT_PLTGOT:
+			/* address of PLT/GOT */
 			obj->pltgot = (Elf_Addr *)(obj->relocbase + dynp->d_un.d_ptr);
 			obj->flags |= TF_PLTGOT;
 			break;
 
 		case DT_GNU_HASH:
+			/* address of the gnu hash symbol table */
 			{
 				Elf32_Word nmaskword;
 				int bloom_size32;
@@ -506,6 +514,7 @@ digest_dynamic(elf_object *obj)
 			break;
 
 		case DT_HASH:
+			/* address of the elf hash symbol table */
 			hashtab = (Elf_Hashelt *)(obj->relocbase + dynp->d_un.d_ptr);
 			obj->nbuckets = hashtab[0];
 			obj->nchains = hashtab[1];
@@ -515,75 +524,115 @@ digest_dynamic(elf_object *obj)
 			break;
 
 		case DT_STRTAB:
+			/* address of the string table */
 			obj->strtab = (char *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 
 		case DT_SYMTAB:
+			/* address of the symbol table */
 			obj->symtab = (Elf_Sym *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 
 		case DT_STRSZ:
+			/* size of the string table */
 			obj->strsize = dynp->d_un.d_val;
 			break;
 		
 		case DT_SYMENT:
-			/* ignoring */
+			/* ignoring for now
+			 * size of the symbol entry table
+			 * might be a good idea to store this off? */
 			break;
 		
 		case DT_INIT_ARRAY:
+			/* XXX: if there's more than one init function
+			 * this is the address to the array of those
+			 * functions. This shouldn't be ignored... */
 		case DT_FINI_ARRAY:
+			/* XXX: if there's more than one fini function
+			 * this is teh address to the start of the array
+			 * of fini functions.  This shouldn't be ignored... */
 		case DT_INIT_ARRAYSZ:
+			/* size of the init function array (in bytes)
+			 * sizeof table = dynp->d_un.d_val / sizeof(Elf_Addr) */
 		case DT_FINI_ARRAYSZ:
+			/* size of the fini function array (in bytes) */
+		case DT_TEXTREL:
+			/* if exists, relocation might modify the .text section */
+		case DT_PREINIT_ARRAY:
+			/* array of functions to be called BEFORE the init functions */
+		case DT_PREINIT_ARRAYSZ:
+			/* size in bytes of the preinit array */
 			/* ignoring? */
 			break;
 
 		case DT_DEBUG:
-			/* we don't need no strinkin' debug syms */
+			/* we don't need no strinkin' debug symbols */
 			break;
 
+		/* these are all from the gnu elf extension */
 		case DT_VERSYM:
+			/* address of the version symbol table */
 		case DT_VERDEF:
+			/* address of the version definition table */
 		case DT_VERDEFNUM:
+			/* number of version definitions */
 		case DT_VERNEED:
+			/* address of teh version needed table */
 		case DT_VERNEEDNUM:
+			/* number of version needed entries */
 		case DT_RELCOUNT:
+			/* number of relocations required? */
 		case DT_RELACOUNT:
+			/* number of relocations with addends required? */
 			/* ignoring */
 			break;
 		
 		case DT_INIT:
+			/* address of the init function */
 			obj->init = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 		
 		case DT_FINI:
+			/* address of the fini function */
 			obj->fini = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 		
 		case DT_REL:
+			/* address of the relocation table */
 			obj->rel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 		
 		case DT_RELSZ:
+			/* size of the REL relocation table */
 			obj->relsize = (unsigned long)dynp->d_un.d_val;
 			break;
 		
+		case DT_RELENT:
+			/* ignoring, size of entry in the REL relocation table */
+			break;
+
 		case DT_RELA:
+			/* address of the relocation table with addends */
 			obj->rela = (Elf_Rela *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 
 		case DT_RELASZ:
+			/* size of the RELA relocation table */
 			obj->relasize = (unsigned long)dynp->d_un.d_val;
 			break;
 		
 		case DT_RELAENT:
-			/* ignoring */
+			/* ignoring, size of entry in the RELA relocation table  */
 			break;
 
 		case DT_PLTREL:
+			/* PLT reference rellocation entry */
 			plttype = dynp->d_un.d_val;
 			break;
 		
 		case DT_JMPREL:
+			/* address of the PLT's relocation entries */
 			obj->pltrel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_val);
 			break;
 		
