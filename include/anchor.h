@@ -17,7 +17,7 @@ typedef struct _anchor Anchor;
  *	searches through a binary search tree for an anchor that matches
  *  the function name.  Once found, the symbol member is returned.
  *
- *	The Anchor tree superceed any symbols from already loaded 
+ *	The Anchor tree superceed any symbols from already loaded
  *	shared objects.  So if you want to hook the malloc function,
  *	for example, you can add a replacement function to the list
  *	and when it goes to resolve malloc, it'll call the given

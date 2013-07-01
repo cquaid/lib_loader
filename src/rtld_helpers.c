@@ -9,7 +9,7 @@ int
 convert_prot(int flags)
 {
 	int prot = 0;
-	
+
 	/* convert the ELF flags to mmap flags */
 	prot |= PROT_READ  * !!(flags & PF_R);
 	prot |= PROT_WRITE * !!(flags & PF_W);
@@ -40,11 +40,11 @@ _gnu_hash(char *name)
 {
 	unsigned char *p;
 	uint_fast32_t h;
-	
+
 	p = (unsigned char *)name;
 	for (h = 5381; *p != '\0'; ++p)
 		h = ((h << 5) + h) + *p;
-	
+
 	return (uint32_t)(h & 0xffffffff);
 }
 
@@ -72,7 +72,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 		rel = (Elf_Rel *)((char *)obj->pltrel + reloff);
 	else
 		rel = (Elf_Rel *)((char *)obj->pltrela + reloff);
-	
+
 	where = (Elf_Addr *)(obj->relocbase + rel->r_offset);
 
 	def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj, NULL);
@@ -91,7 +91,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 }
 
 /* XXX: currently this function is useless
- * need to get the LD_LIBRARY_PATH env variable 
+ * need to get the LD_LIBRARY_PATH env variable
  * for search paths and need to contain all
  * symbols that ld.so exports. */
 static void*
@@ -103,17 +103,17 @@ dlopen_wrap(char *name, int mode)
 
 	(void)mode;
 
-	ret = (void *)elf_dlopen(name);	
+	ret = (void *)elf_dlopen(name);
 	if (ret != NULL)
 		return ret;
-	
+
 	strncpy(buf, name, sizeof(buf));
 	buf[sizeof(buf) - 1] = '\0';
 
 	p = strstr(buf, ".so");
 	if (p != NULL)
 		*(p + 3) = '\0';
-	
+
 	return (void *)elf_dlopen(buf);
 }
-#endif	
+#endif

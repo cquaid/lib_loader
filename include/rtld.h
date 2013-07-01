@@ -47,10 +47,10 @@ struct _elf_object {
 
 	Elf_Rel *rel;
 	unsigned long relsize;
-	
+
 	Elf_Rela *rela;
 	unsigned long relasize;
-	
+
 	Elf_Rel *pltrel;
 	unsigned long pltrelsize;
 
@@ -64,7 +64,7 @@ struct _elf_object {
 
 	Elf_Hashelt *buckets;
 	unsigned long nbuckets;
-	
+
 	Elf_Hashelt *chains;
 	unsigned long nchains;
 
@@ -73,7 +73,7 @@ struct _elf_object {
 
 	Elf_Addr preinit_array;
 	unsigned long preinit_array_len;
-	
+
 	Elf_Addr init_array;
 	unsigned long init_array_len;
 

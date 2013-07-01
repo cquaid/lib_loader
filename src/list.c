@@ -10,7 +10,7 @@ ll_new_list(void)
 	List *ret = (List*)malloc(sizeof(List));
 	if (ret == NULL)
 		return NULL;
-	
+
 	memset(ret, 0, sizeof(List));
 
 	return ret;
@@ -22,7 +22,7 @@ ll_new_node(void *data)
 	ListNode *ret = (ListNode*)malloc(sizeof(ListNode));
 	if (ret == NULL)
 		return NULL;
-	
+
 	memset(ret, 0, sizeof(ListNode));
 	ret->data = data;
 
@@ -34,7 +34,7 @@ ll_push_node(List *ll, ListNode *n)
 {
 	if (ll == NULL || n == NULL)
 		return;
-	
+
 	if (ll->size == 0) {
 		ll->head = n;
 		ll->tail = n;
@@ -112,7 +112,7 @@ ll_delete_node(ListNode *n, ll_free nfree)
 		else
 			free(n->data);
 	}
-	
+
 	free(n);
 }
 
@@ -141,10 +141,10 @@ ll_get_next(List *ll)
 
 	if (ll == NULL)
 		return NULL;
-	
+
 	if (ll->current == ll->tail)
 		return NULL;
-	
+
 	if (ll->current == NULL) {
 		ll->current = ll->head;
 		return ll->current;
@@ -164,7 +164,7 @@ ll_find_node(List *ll, void *data, ll_compare ncmp)
 
 	if (ll == NULL)
 		return NULL;
-	
+
 	res = ll->current;
 	ll->current = ll->head;
 

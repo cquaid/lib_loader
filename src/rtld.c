@@ -102,7 +102,7 @@ elf_dlclose(elf_object *obj)
 		debugln("null object");
 		return -EINVAL;
 	}
-	
+
 	/* grab and call the fini function */
 	if (obj->fini) {
 		fini = (fini_function)obj->fini;
@@ -149,7 +149,7 @@ elf_dlopen(char *path)
 	ssize_t nbytes;
 	elf_object *ret;
 	init_function init;
-	
+
 	union {
 		Elf_Ehdr hdr;
 		char buf[PAGE_LEN];
@@ -179,7 +179,7 @@ elf_dlopen(char *path)
 		debugln("file too small");
 		return NULL;
 	}
-	
+
 	if (u.hdr.e_phentsize != sizeof(Elf_Phdr)) {
 		close(fd);
 		debugln("e_phentsize is not sizeof(Elf_Phdr)");
@@ -269,7 +269,7 @@ elf_dlsym(elf_object *obj, char *name)
 {
 	if ((obj->flags & TF_GNU_HASH))
 		return _gnu_dlsym(obj, name);
-	
+
 	return _elf_dlsym(obj, name);
 }
 
@@ -308,7 +308,7 @@ _gnu_dlsym(elf_object *obj, char *name)
 		debugln("nbuckets_gnu == 0");
 		return NULL;
 	}
-	
+
 	/* locate hash chain */
 	bucket = obj->buckets_gnu[hash % obj->nbuckets_gnu];
 	if (!bucket) {
@@ -413,7 +413,7 @@ _elf_dlsym(elf_object *obj, char *name)
 
 		if (*name != *strp || strcmp(name, strp))
 			continue;
-		
+
 		return (obj->relocbase + symp->st_value);
 	}
 
@@ -429,10 +429,10 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	Elf_Sym *ref;
 	Elf_Sym *def;
 	elf_object *def_obj;
-	
+
 	if (symnum >= ref_obj->dynsymcount) { /* ->nchains */
 		debugln("chain too small");
-		return NULL;	
+		return NULL;
 	}
 
 	ref = ref_obj->symtab + symnum;
@@ -572,21 +572,21 @@ digest_dynamic(elf_object *obj)
 			/* size of the string table */
 			obj->strsize = dynp->d_un.d_val;
 			break;
-		
+
 		case DT_INIT_ARRAY:
 			/*  if there's more than one init function
 			 * this is the address to the array of those
 			 * functions. */
 			obj->init_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
-		
+
 		case DT_FINI_ARRAY:
 			/* if there's more than one fini function
 			 * this is teh address to the start of the array
 			 * of fini functions. */
 			 obj->fini_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			 break;
-		
+
 		case DT_INIT_ARRAYSZ:
 			/* size of the init function array (in bytes) */
 			obj->init_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
@@ -596,18 +596,17 @@ digest_dynamic(elf_object *obj)
 			/* size of the fini function array (in bytes) */
 			obj->fini_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
 			break;
-		
-		
+
 		case DT_PREINIT_ARRAY:
 			/* array of functions to be called BEFORE the init functions */
 			obj->preinit_array = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
-		
+
 		case DT_PREINIT_ARRAYSZ:
 			/* size in bytes of the preinit array */
 			obj->preinit_array_len = dynp->d_un.d_val / sizeof(Elf_Addr);
 			break;
-		
+
 		case DT_SYMENT:
 			/* Ignoring for now
 			 * size of the symbol entry table
@@ -639,27 +638,27 @@ digest_dynamic(elf_object *obj)
 			/* number of relocations with addends required? */
 			/* ignoring */
 			break;
-		
+
 		case DT_INIT:
 			/* address of the init function */
 			obj->init = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
-		
+
 		case DT_FINI:
 			/* address of the fini function */
 			obj->fini = (Elf_Addr)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
-		
+
 		case DT_REL:
 			/* address of the relocation table */
 			obj->rel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
-		
+
 		case DT_RELSZ:
 			/* size of the REL relocation table */
 			obj->relsize = (unsigned long)dynp->d_un.d_val;
 			break;
-		
+
 		case DT_RELENT:
 			/* ignoring, size of entry in the REL relocation table */
 			break;
@@ -673,7 +672,7 @@ digest_dynamic(elf_object *obj)
 			/* size of the RELA relocation table */
 			obj->relasize = (unsigned long)dynp->d_un.d_val;
 			break;
-		
+
 		case DT_RELAENT:
 			/* ignoring, size of entry in the RELA relocation table  */
 			break;
@@ -682,15 +681,15 @@ digest_dynamic(elf_object *obj)
 			/* PLT reference rellocation entry */
 			plttype = dynp->d_un.d_val;
 			break;
-		
+
 		case DT_JMPREL:
 			/* address of the PLT's relocation entries */
 			obj->pltrel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_val);
 			break;
-		
+
 		default:
 			debug("%s: unknown dt_type %lx\n", __func__, (unsigned long)dynp->d_tag);
-			break;	
+			break;
 		}
 	}
 
@@ -713,7 +712,7 @@ digest_dynamic(elf_object *obj)
 			++dl_count;
 			debug("%s: needed: %s\n", __func__, strp);
 			break;
-		
+
 		case DT_SONAME:
 			debug("%s: soname: %s\n", __func__, obj->strtab +dynp->d_un.d_ptr);
 			break;
@@ -736,7 +735,7 @@ digest_dynamic(elf_object *obj)
 	else if (obj->flags & TF_GNU_HASH) {
 		Elf_Hashelt *hashval;
 		unsigned long i;
-		
+
 		obj->dynsymcount = 0;
 		for (i = 0; i < obj->nbuckets_gnu; ++i) {
 			if (!obj->buckets_gnu[i])
@@ -781,7 +780,7 @@ _elf_dlreloc(elf_object *obj)
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value + rela->r_addend);
 			break;
-		
+
 		case R_X86_64_GLOB_DAT:
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &def_obj,
 							  false, NULL);
@@ -852,7 +851,7 @@ _elf_dlreloc(elf_object *obj)
 			}
 			*where = (Elf_Addr)(def_obj->relocbase + def->st_value);
 			break;
-		
+
 		case R_386_TLS_DTPMOD32:
 			/* ignoring */
 			break;
@@ -975,7 +974,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 
 				if (!(data_prot & PROT_WRITE))
 					mprotect(clear_page, PAGE_LEN, data_prot | PROT_WRITE);
-				
+
 				memset((void *)clear_addr, 0, nclear);
 
 				if (!(data_prot & PROT_WRITE))

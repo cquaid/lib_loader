@@ -20,7 +20,7 @@ bintree_new_node(Anchor *anchor)
 
 	memset(ret, 0, sizeof(BinTree));
 	if (anchor)
-		memcpy(&ret->anchor, anchor, sizeof(Anchor));	
+		memcpy(&ret->anchor, anchor, sizeof(Anchor));
 
 	return ret;
 }
@@ -33,7 +33,7 @@ bintree_add_node(BinTree *root, BinTree *node)
 	t = strcmp(root->anchor.name, node->anchor.name);
 	if (t == 0)
 		return root;
-	
+
 	if (t > 0) {
 		if (root->right == NULL) {
 			root->right = node;
@@ -75,16 +75,16 @@ BinTree*
 bintree_search(BinTree *root, char *name)
 {
 	int t;
-	
+
 	if (root == NULL)
 		return NULL;
 
 	t = strcmp(root->anchor.name, name);
 	if (t == 0)
 		return root;
-	
+
 	if (t > 0)
 		return bintree_search(root->right, name);
-	
-	return bintree_search(root->left, name); 
+
+	return bintree_search(root->left, name);
 }

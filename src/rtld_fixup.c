@@ -19,10 +19,10 @@ void
 add_fixup_anchor_list(Anchor *anchor_list)
 {
 	Anchor *a;
-	
+
 	if (anchor_list == NULL)
 		return;
-	
+
 	a = anchor_list;
 	while (a->symbol != NULL && a->name != NULL)
 		add_fixup_anchor(a++);
@@ -71,14 +71,14 @@ fixup_lookup(char *name)
 {
 	BinTree *b;
 	ListNode *c;
-	
+
 	if (fixup_tree == NULL && object_list == NULL) {
 #if 0
 		debug("%s: WARN: `%s' not found\n", __func__, name);
 #endif
 		return NULL;
 	}
-	
+
 	if (fixup_tree == NULL)
 		goto object_search;
 
@@ -129,7 +129,7 @@ add_object_list(elf_object *obj)
 		debugln("couldn't allocate new list node");
 		return;
 	}
-	
+
 	ll_push_node(object_list, tmp);
 }
 
