@@ -103,12 +103,6 @@ elf_dlclose(elf_object *obj)
 		return -EINVAL;
 	}
 
-	/* grab and call the fini function */
-	if (obj->fini) {
-		fini = (fini_function)obj->fini;
-		fini();
-	}
-
 	/* call the fini functions in the list */
 	if (obj->fini_array) {
 		unsigned long i;
@@ -117,6 +111,12 @@ elf_dlclose(elf_object *obj)
 			fini = (fini_function)fini_array[i];
 			fini();
 		}
+	}
+
+	/* call the fini function, must be after fini array */
+	if (obj->fini) {
+		fini = (fini_function)obj->fini;
+		fini();
 	}
 
 	/* XXX: currently this doesn't actually do anything */
@@ -247,8 +247,7 @@ elf_dlopen(char *path)
 	}
 
 	/* call the init functions from the array
-	 * not really sure if I'm suppose to call
-	 * both the init and the init_array or not... */
+	 * init array has to be called after init */
 	if (ret->init_array) {
 		unsigned long i;
 		Elf_Addr *init_array = (Elf_Addr *)ret->init_array;
@@ -927,7 +926,8 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 	mapsize = (size_t)(base_vlimit - base_vaddr);
 	mapbase = (Elf_Addr)mmap(NULL, mapsize, PROT_NONE, MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (mapbase == (Elf_Addr)MAP_FAILED) {
-		debug("%s: mmap(): %s\n", __func__, strerror(errno));
+		debug("%s: mmap(%ld): %s\n", __func__, (unsigned long)mapsize,
+			  strerror(errno));
 		return -1;
 	}
 
@@ -952,7 +952,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 
 		if (mmap((void *)data_addr, data_vlimit - data_vaddr,
 				 data_prot | PROT_WRITE, data_flags, fd,
-				 data_off)== MAP_FAILED) {
+				 data_off) == MAP_FAILED) {
 			debug("%s: mmap(data_addr): %s\n", __func__, strerror(errno));
 			return -1;
 		}
