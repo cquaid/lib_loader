@@ -13,8 +13,7 @@ bintree_new_node(Anchor *anchor)
 
 	ret = (BinTree *)malloc(sizeof(BinTree));
 	if (ret == NULL) {
-		debug("%s: malloc(ret): %s\n", __func__,
-			  strerror(errno));
+		debug("malloc(): %s\n", strerror(errno));
 		return NULL;
 	}
 

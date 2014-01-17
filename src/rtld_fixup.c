@@ -49,8 +49,8 @@ add_fixup_anchor(Anchor *anchor)
 	/* check if the anchor is already in the tree */
 	tmp = bintree_search(fixup_tree, anchor->name);
 	if (tmp != NULL) {
-		debug("%s: replacing `%s' with new definition\n",
-			  __func__, anchor->name);
+		debug("replacing `%s' with new definition\n",
+			  anchor->name);
 		/* replace the old anchor with the new one */
 		memcpy(&tmp->anchor, anchor, sizeof(Anchor));
 		return;
@@ -74,7 +74,7 @@ fixup_lookup(char *name)
 
 	if (fixup_tree == NULL && object_list == NULL) {
 #if 0
-		debug("%s: WARN: `%s' not found\n", __func__, name);
+		debug("WARN: `%s' not found\n", name);
 #endif
 		return NULL;
 	}
@@ -84,7 +84,7 @@ fixup_lookup(char *name)
 
 	b = bintree_search(fixup_tree, name);
 	if (b != NULL) {
-		debug("%s: INFO: `%s' found in fixup_tree\n", __func__, name);
+		debug("INFO: `%s' found in fixup_tree\n", name);
 		return b->anchor.symbol;
 	}
 
@@ -96,7 +96,7 @@ object_search:
 	for (; c != NULL; c = c->next) {
 		void *d = elf_dlsym((elf_object *)(c->data), name);
 		if (d != NULL) {
-			debug("%s: INFO: `%s' found in object_list\n", __func__, name);
+			debug("INFO: `%s' found in object_list\n", name);
 			return d;
 		}
 	}

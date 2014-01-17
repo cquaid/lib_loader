@@ -157,7 +157,7 @@ elf_dlopen(char *path)
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
-		debug("%s: open(): %s\n", __func__, strerror(errno));
+		debug("open(): %s\n", strerror(errno));
 		return NULL;
 	}
 
@@ -170,7 +170,7 @@ elf_dlopen(char *path)
 	nbytes = pread(fd, u.buf, PAGE_LEN, 0);
 	if (nbytes == -1) {
 		close(fd);
-		debug("%s: pread(): %s\n", __func__, strerror(errno));
+		debug("pread(): %s\n", strerror(errno));
 		return NULL;
 	}
 
@@ -197,7 +197,7 @@ elf_dlopen(char *path)
 	ret = (elf_object *)malloc(sizeof(elf_object));
 	if (ret == NULL) {
 		close(fd);
-		debug("%s: malloc(): %s\n", __func__, strerror(errno));
+		debug("malloc(): %s\n", strerror(errno));
 		return NULL;
 	}
 
@@ -299,7 +299,7 @@ _gnu_dlsym(elf_object *obj, char *name)
 
 	/* filter out things that arn't in the set */
 	if (((bloom_word >> h1) & (bloom_word >> h2) & 1) == 0) {
-		debug("%s: `%s' is not in the list\n", __func__, name);
+		debug("`%s' is not in the list\n", name);
 		return NULL;
 	}
 
@@ -383,7 +383,7 @@ _elf_dlsym(elf_object *obj, char *name)
 	/* loop through the chain to find the symbol */
 	for (; symnum != SHN_UNDEF; symnum = obj->chains[symnum]) {
 		if (symnum >= obj->nchains) {
-			debug("%s: symnum (%lu) too large\n", __func__, symnum);
+			debug("symnum (%lu) too large\n", symnum);
 			return NULL;
 		}
 
@@ -465,7 +465,7 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 		def = NULL;
 
 	if (def == NULL && ELF_ST_BIND(ref->st_info) == STB_WEAK) {
-		debug("%s: unreferenced weak object: %s\n", __func__, name);
+		debug("unreferenced weak object: %s\n", name);
 		def = &sym_zero;
 		def_obj = &obj_main_0;
 	}
@@ -473,13 +473,13 @@ find_symdef(unsigned long symnum, elf_object *ref_obj,
 	if (def != NULL)
 		*out = def_obj;
 	else if (!in_plt) {
-		debug("%s: roc_slot missing: %d %d %s\n", __func__,
+		debug("roc_slot missing: %d %d %s\n",
 			  ELF_ST_BIND(ref->st_info), ELF_ST_TYPE(ref->st_info),
 			  name);
 	}
 
 	if (def == NULL && !in_plt) {
-		debug("%s: ERR: symbol `%s' not found\n", __func__, name);
+		debug("ERR: symbol `%s' not found\n", name);
 		return NULL; /* XXX: should fail/exit */
 	}
 
@@ -687,7 +687,7 @@ digest_dynamic(elf_object *obj)
 			break;
 
 		default:
-			debug("%s: unknown dt_type %lx\n", __func__, (unsigned long)dynp->d_tag);
+			debug("unknown dt_type %lx\n", (unsigned long)dynp->d_tag);
 			break;
 		}
 	}
@@ -709,11 +709,11 @@ digest_dynamic(elf_object *obj)
 			strp = (char *)(obj->strtab + dynp->d_un.d_ptr);
 			obj->dl_handles[dl_count] = dlopen_wrap(strp, 0);
 			++dl_count;
-			debug("%s: needed: %s\n", __func__, strp);
+			debug("needed: %s\n", strp);
 			break;
 
 		case DT_SONAME:
-			debug("%s: soname: %s\n", __func__, obj->strtab +dynp->d_un.d_ptr);
+			debug("soname: %s\n", obj->strtab +dynp->d_un.d_ptr);
 			break;
 
 		default:
@@ -795,7 +795,7 @@ _elf_dlreloc(elf_object *obj)
 			break;
 
 		default:
-			debug("%s: rel slot drop: type %lx, bind %lx\n", __func__,
+			debug("rel slot drop: type %lx, bind %lx\n",
 				  (unsigned long)ELF_R_TYPE(rela->r_info),
 				  (unsigned long)ELF_ST_BIND(rela->r_info));
 			break;
@@ -856,7 +856,7 @@ _elf_dlreloc(elf_object *obj)
 			break;
 
 		default:
-			debug("%s: unknown type: %lu\n", __func__,
+			debug("unknown type: %lu\n",
 				  (unsigned long)ELF_R_TYPE(rel->r_info));
 			return -1; /* XXX: should fail/exit */
 			break;
@@ -901,6 +901,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 	phdrinit = (Elf_Phdr *)((char *)hdr + hdr->e_phoff);
 	phdrfini = (Elf_Phdr *)(phdrinit + hdr->e_phnum);
 
+	pltloadfirst = 0;
 	for (phdr = phdrinit; phdr < phdrfini; ++phdr) {
 		switch (phdr->p_type) {
 		case PT_LOAD:
@@ -926,7 +927,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 	mapsize = (size_t)(base_vlimit - base_vaddr);
 	mapbase = (Elf_Addr)mmap(NULL, mapsize, PROT_NONE, MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (mapbase == (Elf_Addr)MAP_FAILED) {
-		debug("%s: mmap(%ld): %s\n", __func__, (unsigned long)mapsize,
+		debug("mmap(%ld): %s\n", (unsigned long)mapsize,
 			  strerror(errno));
 		return -1;
 	}
@@ -953,7 +954,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 		if (mmap((void *)data_addr, data_vlimit - data_vaddr,
 				 data_prot | PROT_WRITE, data_flags, fd,
 				 data_off) == MAP_FAILED) {
-			debug("%s: mmap(data_addr): %s\n", __func__, strerror(errno));
+			debug("mmap(data_addr): %s\n", strerror(errno));
 			return -1;
 		}
 
@@ -985,7 +986,7 @@ _elf_dlmmap(elf_object *obj, int fd, Elf_Ehdr *hdr)
 				bss_addr = mapbase + (bss_vaddr - base_vaddr);
 
 				if (mprotect((void *)bss_addr, bss_vlimit - bss_vaddr, data_prot) == -1) {
-					debug("%s: mprotect(): %s\b", __func__, strerror(errno));
+					debug("mprotect(): %s\b", strerror(errno));
 					return -1;
 				}
 			}

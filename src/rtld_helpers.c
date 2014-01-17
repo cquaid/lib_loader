@@ -64,7 +64,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 	elf_object *def_obj;
 
 	if (obj == NULL) {
-		debug("%s: obj is null\n", __func__);
+		debug("obj is null\n");
 		return 0; /* XXX: should fail/exit */
 	}
 
@@ -78,7 +78,7 @@ _rtld_fixup(elf_object *obj, Elf_Off reloff)
 	def = find_symdef(ELF_R_SYM(rel->r_info), obj, &def_obj, NULL);
 	if (def == NULL) {
 		def = obj->symtab + ELF_R_SYM(rel->r_info);
-		debug("%s: symbol missing: %s\n", __func__, obj->strtab + def->st_name);
+		debug("symbol missing: %s\n", obj->strtab + def->st_name);
 		return 0; /* XXX: should fail/exit */
 	}
 
