@@ -1,12 +1,16 @@
 
+ifdef MORE_WARNINGS
+WARNINGS = -Wall -Wextra -Wconversion -Werror
+else
+WARNINGS = -Wall
+endif
+
 ifdef DEBUG
 DEBUG_OPT = DEBUG=1
 DEBUG_FLAGS = -g -DDEBUG
-WARNINGS = -Wall -Wextra -Wconversion -Werror
 else
 DEBUG_OPT=
 DEBUG_FLAGS=
-WARNINGS = -Wall
 endif
 
 RTLD_LIB ?= rtld
