@@ -237,11 +237,17 @@ elf_dlopen(char *path)
 			init = (init_function)preinit_array[i];
 			init();
 		}
-		debugln("preinit functions called");
 	}
 
-	/* grab and call the init function */
+	/* grab and call the init function
+	 * XXX: bug when calling init() loading libc
+	 * so only call one or the other?
+	 */
+#if 0
 	if (ret->init) {
+#else
+	if (ret->init && !ret->init_array) {
+#endif
 		init = (init_function)ret->init;
 		init();
 	}
