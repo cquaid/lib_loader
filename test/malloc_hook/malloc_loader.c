@@ -19,7 +19,7 @@ main(int argc, char *argv[])
 
 	add_fixup_anchor(&a);
 
-	elf = elf_dlopen("./malloc_test.so");
+	elf = elf_dlopen("./malloc_lib.so");
 	if (elf == NULL) {
 		fprintf(stderr, "elf_dlopen failed\n");
 		return 1;
