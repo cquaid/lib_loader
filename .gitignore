@@ -5,4 +5,5 @@ lib/*.so
 lib/*.a
 test/lib_test/test_loader
 test/zlib/libz_loader
+test/libc/libc_loader
 test/malloc_hook/malloc_loader
