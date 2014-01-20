@@ -14,6 +14,12 @@
 # error "LD_PATH unset!"
 #endif
 
+#ifdef DEBUG
+# define debug(...) do{ printf(__VA_ARGS__); }while(0)
+#else
+# define debug(...) do{}while(0)
+#endif
+
 static char *ldso = LD_PATH;
 static char *libc = LIBC_PATH;
 
@@ -69,7 +75,7 @@ xelf_dlopen(char *path)
 	ret = elf_dlopen(path);
 	if (ret == NULL)
 		die("elf_dlopen(%s) failed\n", path);
-	printf("Successfully loaded %s\n", path);
+	debug("Successfully loaded %s\n", path);
 
 	return ret;
 }
@@ -82,7 +88,7 @@ xelf_dlsym(elf_object *elf, char *sym)
 	ret = elf_dlsym(elf, sym);
 	if (ret == NULL)
 		die("elf_dlsym(%s) failed\n", sym);
-	printf("Successfully found %s\n", sym);
+	debug("Successfully found %s\n", sym);
 
 	return ret;
 }
