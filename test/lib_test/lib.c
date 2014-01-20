@@ -8,7 +8,7 @@
  * gcc -shared -Wl,-soname,lib.so.1 -o lib.so.1.0 lib.o
  */
 
-static int c = 60;
+static int c = 0x30;
 #include <stdlib.h>
 
 

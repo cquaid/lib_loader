@@ -7,7 +7,7 @@ create_string(size_t len)
 	char c;
 	size_t i;
 	char *ret;
-	
+
 	ret = (char *)malloc(len + 1);
 	if (ret == NULL)
 		return NULL;

@@ -1,28 +1,27 @@
-SRC_DIR = .
-SRC_FILES = ${SRC_DIR}/libz_loader.c
-OBJECTS = libz_loader.o
+LOADER_SRC = libz_loader.c
+LOADER_OBJ = $(LOADER_SRC:.c=.o)
 
-LIB = rtld
-INCLUDE = ../../include
 BINARY = libz_loader
 
-CFLAGS = -std=gnu99 -Wall -I${INCLUDE}
-LDFLAGS = -L../../lib -l${LIB}
+RTLD_LIB ?= rtld
+RTLD_LIB_DIR = $(CURDIR)/../../lib
+RTLD_INC_DIR = $(CURDIR)/../../include
+
+LOADER_CFLAGS = -std=gnu99 -Wall -I$(RTLD_INC_DIR)
+LOADER_LDFLAGS = -static -L$(RTLD_LIB_DIR) -l$(RTLD_LIB)
 
 ifdef DEBUG
-CFLAGS += -g -DDEBUG
+LOADER_CFLAGS += -g -DDEBUG
 endif
 
-all: libz_loader
+all: $(BINARY)
 
-libz_loader:
-	@echo CC -c ${SRC_FILES} ${LDFLAGS}
-	@${CC} ${CFLAGS} -c ${SRC_FILES}
-	@echo CC -o ${BINARY}
-	@${CC} -o ${BINARY} ${OBJECTS} ${LDFLAGS}
+.PHONY: $(BINARY)
+$(BINARY): CFLAGS = $(LOADER_CFLAGS)
+$(BINARY): $(LOADER_OBJ)
+	@echo $(CC) -o $(BINARY)
+	@$(CC) -o $(BINARY) $(LOADER_OBJ) $(LOADER_LDFLAGS)
 
+.PHONY: clean
 clean:
-	@rm ${OBJECTS}
-	@rm ${BINARY}
-
-.PHONY: all libz_loader clean
+	@rm $(BINARY) $(LOADER_OBJ)

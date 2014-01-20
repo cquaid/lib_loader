@@ -1,40 +1,57 @@
-SRC_DIR = src
-SRC_FILES =  ${SRC_DIR}/rtld_helpers.c ${SRC_DIR}/rtld_fixup.c ${SRC_DIR}/rtld.c
-SRC_FILES += ${SRC_DIR}/list.c ${SRC_DIR}/bintree.c
-OBJECTS =  rtld_helpers.o rtld_fixup.o rtld.o
-OBJECTS += list.o bintree.o
 
-LIB_NAME = librtld.so
-INCLUDE = include
+include config.mk
 
-LDFLAGS = -shared -Wl,-soname,${LIB_NAME}
-CFLAGS = -std=gnu99 -pedantic -Wall -fpic -I${INCLUDE}
+SRC_DIR = $(CURDIR)/src
+INC_DIR = $(CURDIR)/include
+LIB_DIR = $(CURDIR)/lib
 
-ifdef DEBUG
-CFLAGS += -g -DDEBUG
-DEBUG_OPT= DEBUG=1
-else
-DEBUG_OPT=
-endif
+SRC = \
+	$(SRC_DIR)/rtld_helpers.c \
+	$(SRC_DIR)/rtld_fixup.c \
+	$(SRC_DIR)/rtld.c \
+	$(SRC_DIR)/list.c \
+	$(SRC_DIR)/bintree.c
 
-all: librtld test
+OBJ = $(SRC:.c=.o)
 
-librtld:
-	@echo CC -c ${SRC_FILES}
-	@${CC} ${CFLAGS} -c ${SRC_FILES}
-	@echo CC -o ${LIB_NAME}
-	@${CC} ${LDFLAGS} -o ${LIB_NAME} ${OBJECTS}
-	@mkdir -p lib
-	@mv ${LIB_NAME} lib/${LIB_NAME}
+STATIC_CFLAGS = -static -I$(INC_DIR)
+DYNAMIC_CFLAGS = -fpic -I$(INC_DIR)
 
+all: librtld librtld-static test
+
+.PHONY: options
+options:
+	@echo "librtld build options:"
+	@echo " * CC     = $(CC)"
+	@echo " * CFLAGS = $(CFLAGS)"
+
+$(LIB_DIR):
+	@[ -e $(LIB_DIR) ] || mkdir -p $(LIB_DIR)
+
+.PHONY: librtld
+librtld: CFLAGS = $(RTLD_CFLAGS) $(DYNAMIC_CFLAGS)
+librtld: options $(OBJ) $(LIB_DIR)
+	@echo "=== BUILDING $(RTLD_LIB_DYNAMIC) ==="
+	@echo $(CC) -o $(RTLD_LIB_DYNAMIC)
+	@$(CC) -o $(RTLD_LIB_DYNAMIC) $(OBJ) $(RTLD_LDFLAGS)
+	@mv $(RTLD_LIB_DYNAMIC) $(LIB_DIR)
+
+.PHONY: librtld-static
+librtld-static: CFLAGS = $(RTLD_CFLAGS) $(STATIC_CFLAGS)
+librtld-static: options $(OBJ) $(LIB_DIR)
+	@echo "=== BUILDING $(RTLD_LIB_STATIC) ==="
+	@echo ar rcs $(RTLD_LIB_STATIC)
+	@ar rcs $(RTLD_LIB_STATIC) $(OBJ)
+	@mv $(RTLD_LIB_STATIC) $(LIB_DIR)
+
+.PHONY: test
 test:
-	@echo "building test objects"
-	@cd test && make ${DEBUG_OPT}
+	@echo "=== BUILDING TEST OBJECTS ==="
+	@$(MAKE) -C $(CURDIR)/test $(DEBUG_OPT)
 
+.PHONY: clean
 clean:
-	@echo "cleaning"
-	@rm ${OBJECTS}
-	@rm -rf lib
-	@cd test && make clean
-
-.PHONY: all librtld test clean
+	@echo "=== CLEANING ==="
+	@rm $(OBJ)
+	@rm -rf $(LIB_DIR)
+	@$(MAKE) -C $(CURDIR)/test clean

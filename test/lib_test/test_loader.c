@@ -35,7 +35,7 @@ main(int argc, char *argv[])
 	}
 
 	printf("getRandomNumber returned: %x\n", n());
-	
+
 	s = (getString)elf_dlsym(elf, "getString");
 	if (s == NULL) {
 		fprintf(stderr, "elf_dlsym('getString') failed\n");
@@ -47,7 +47,7 @@ main(int argc, char *argv[])
 	printf("getString returned: %s\n", t);
 	if (t != NULL)
 		free(t);
-	
+
 	elf_dlclose(elf);
 
 	return 0;

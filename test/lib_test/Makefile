@@ -1,41 +1,41 @@
-LIB_FILES = lib.c
-SRC_FILES = test_loader.c
-LIB_OBJECTS = lib.o
-OBJECTS = test_loader.o
+LIB_SRC = lib.c
+LOADER_SRC = test_loader.c
+LIB_OBJ = $(LIB_SRC:.c=.o)
+LOADER_OBJ = $(LOADER_SRC:.c=.o)
 
 BINARY = test_loader
 LIB_NAME = lib.so
-INCLUDE = ../../include
 
-LIB = rtld
+RTLD_LIB ?= rtld
+RTLD_LIB_DIR = $(CURDIR)/../../lib
+RTLD_INC_DIR = $(CURDIR)/../../include
 
-CFLAGS = -std=gnu99 -Wall -I${INCLUDE}
-LDFLAGS = -L ../../lib -l${LIB}
+LOADER_CFLAGS = -std=gnu99 -Wall -I$(RTLD_INC_DIR)
+LOADER_LDFLAGS = -static -L$(RTLD_LIB_DIR) -l$(RTLD_LIB)
 
-LIB_LDFLAGS = -shared -Wl,-soname,${LIB_NAME}
+LIB_LDFLAGS = -shared -Wl,-soname,$(LIB_NAME)
 LIB_CFLAGS = -std=gnu99 -Wall -fpic
 
 ifdef DEBUG
-CFLAGS += -g -DDEBUG
+LOADER_CFLAGS += -g -DDEBUG
 LIB_CFLAGS += -g -DDEBUG
 endif
 
-all: lib test_loader
+all: lib $(BINARY)
 
-lib:
-	@echo CC -c ${LIB_FILES}
-	@${CC} ${LIB_CFLAGS} -c ${LIB_FILES}
-	@echo cc -o ${LIB_NAME}
-	@${CC} ${LIB_LDFLAGS} -o ${LIB_NAME} ${LIB_OBJECTS}
+.PHONY: lib
+lib: CFLAGS = $(LIB_CFLAGS)
+lib: $(LIB_OBJ)
+	@echo $(CC) -o $(LIB_NAME)
+	@$(CC) -o $(LIB_NAME) $(LIB_OBJ) $(LIB_LDFLAGS)
 
-test_loader:
-	@echo CC -c ${SRC_FILES}
-	@${CC} ${CFLAGS} -c ${SRC_FILES}
-	@echo CC -o ${BINARY}
-	@${CC} -o ${BINARY} ${OBJECTS} ${LDFLAGS}
+.PHONY: $(BINARY)
+$(BINARY): CFLAGS = $(LOADER_CFLAGS)
+$(BINARY): lib $(LOADER_OBJ)
+	@echo $(CC) -o $(BINARY)
+	@$(CC) -o $(BINARY) $(LOADER_OBJ) $(LOADER_LDFLAGS)
 
+.PHONY: clean
 clean:
-	@rm ${OBJECTS} ${LIB_OBJECTS}
-	@rm ${LIB_NAME} ${BINARY}
-
-.PHONY: all lib test_loader clean
+	@rm $(LIB_OBJ) $(LOADER_OBJ)
+	@rm $(LIB_NAME) $(BINARY)

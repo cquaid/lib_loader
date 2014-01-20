@@ -9,7 +9,7 @@
 #include "zlib_stuff.h"
 
 static Anchor zlib_anchors[] = {
-#define a(x) { #x, x },	
+#define a(x) { #x, x },
 	a(write)
 	a(strlen)
 	a(fprintf)
@@ -50,7 +50,7 @@ main(int argc, char *argv[])
 	deflateEnd = (deflateEnd_fn)elf_dlsym(elf, "deflateEnd");
 	if (deflateEnd == NULL)
 		goto out;
-	
+
 	deflate = (deflate_fn)elf_dlsym(elf, "deflate");
 	if (deflate == NULL)
 		goto out;
@@ -83,7 +83,7 @@ main(int argc, char *argv[])
 	}
 
 	fprintf(stderr, "usage: a.out [-d] <source> dest\n");
-	
+
 	elf_dlclose(elf);
 	return 0;
 
