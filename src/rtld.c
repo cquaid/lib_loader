@@ -610,9 +610,17 @@ digest_dynamic(elf_object *obj)
 			/* Ignoring for now
 			 * size of the symbol entry table
 			 * might be a good idea to store this off? */
+			if (dynp->d_un.d_val != sizeof(Elf_Sym))
+				debug("XXX: DT_SYMENT invalid value? (%lu/%zd)\n",
+					(unsigned long)dynp->d_un.d_val, sizeof(Elf_Sym));
+			break;
+
 		case DT_TEXTREL:
 			/* if this section exists, relocation might modify the
-			 * .text segment */
+			 * .text segment
+			 * XXX:
+			 * obj->textrel = true;
+			 */
 		case DT_FLAGS:
 			/* flags for the object being loaded
 			 * nothing we really need to worry about... yet. */
@@ -622,15 +630,33 @@ digest_dynamic(elf_object *obj)
 
 		/* these are all from the gnu elf extension */
 		case DT_VERSYM:
-			/* address of the version symbol table */
+			/* address of the version symbol table
+			 * XXX:
+			 * obj->versyms =
+			 *   (Elf_Versym *)(obj->relocbase + dynp->d_un.d_val);
+			 */
 		case DT_VERDEF:
-			/* address of the version definition table */
+			/* address of the version definition table
+			 * XXX:
+			 * obj->verdef =
+			 *   (Elf_Verdef *)(obj->relocbase + dynp->d_un.d_val);
+			 */
 		case DT_VERDEFNUM:
-			/* number of version definitions */
+			/* number of version definitions
+			 * XXX:
+			 * obj->verdefnum = dynp->d_un.d_val;
+			 */
 		case DT_VERNEED:
-			/* address of teh version needed table */
+			/* address of the version needed table
+			 * XXX:
+			 * obj->verneed =
+			 *   (Elf_Verneed *)(obj->relocbase + dynp->d_un.d_val);
+			 */
 		case DT_VERNEEDNUM:
-			/* number of version needed entries */
+			/* number of version needed entries
+			 * XXX:
+			 * obj->verneednum = dynp->d_un.d_val;
+			 */
 		case DT_RELCOUNT:
 			/* number of relocations required? */
 		case DT_RELACOUNT:
@@ -660,6 +686,9 @@ digest_dynamic(elf_object *obj)
 
 		case DT_RELENT:
 			/* ignoring, size of entry in the REL relocation table */
+			if (dynp->d_un.d_val != sizeof(Elf_Rel))
+				debug("XXX: DT_RELENT invalid value? (%lu/%zd)\n",
+					(unsigned long)dynp->d_un.d_val, sizeof(Elf_Rel));
 			break;
 
 		case DT_RELA:
@@ -674,16 +703,22 @@ digest_dynamic(elf_object *obj)
 
 		case DT_RELAENT:
 			/* ignoring, size of entry in the RELA relocation table  */
+			if (dynp->d_un.d_val != sizeof(Elf_Rela))
+				debug("XXX: DT_RELAENT invalid value? (%lu/%zd)\n",
+					(unsigned long)dynp->d_un.d_val, sizeof(Elf_Rela));
 			break;
 
 		case DT_PLTREL:
 			/* PLT reference rellocation entry */
 			plttype = dynp->d_un.d_val;
+			if (plttype != DT_REL && plttype != DT_RELA)
+				debug("XXX: DT_PLTREL isn't DT_REL(%d) or DT_RELA(%d)?\n",
+					DT_REL, DT_RELA);
 			break;
 
 		case DT_JMPREL:
 			/* address of the PLT's relocation entries */
-			obj->pltrel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_val);
+			obj->pltrel = (Elf_Rel *)(obj->relocbase + dynp->d_un.d_ptr);
 			break;
 
 		default:
@@ -878,8 +913,8 @@ _elf_dlreloc(elf_object *obj)
 	}
 
 	if (obj->flags & TF_PLTGOT) {
-		obj->pltgot[2] = (Elf_Addr)_rtld_fixup_start;
 		obj->pltgot[1] = (Elf_Addr)obj;
+		obj->pltgot[2] = (Elf_Addr)_rtld_fixup_start;
 	}
 
 	return 0;
