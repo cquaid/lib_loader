@@ -70,7 +70,7 @@ extern void* fixup_lookup(char *name);
  */
 
 static void fixup_init(void){}
-static void _rtld_fixup_start(void){}
+static void _rtld_fixup_start(void *a,void *b){}
 
 /**
  * Prototypes
