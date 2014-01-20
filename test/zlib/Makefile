@@ -24,4 +24,4 @@ $(BINARY): $(LOADER_OBJ)
 
 .PHONY: clean
 clean:
-	@rm $(BINARY) $(LOADER_OBJ)
+	@rm -f $(BINARY) $(LOADER_OBJ)

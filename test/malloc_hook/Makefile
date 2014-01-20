@@ -37,5 +37,5 @@ $(BINARY): lib $(LOADER_OBJ)
 
 .PHONY: clean
 clean:
-	@rm $(LIB_OBJ) $(LOADER_OBJ)
-	@rm $(LIB_NAME) $(BINARY)
+	@rm -f $(LIB_OBJ) $(LOADER_OBJ)
+	@rm -f $(LIB_NAME) $(BINARY)

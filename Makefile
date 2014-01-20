@@ -52,6 +52,6 @@ test:
 .PHONY: clean
 clean:
 	@echo "=== CLEANING ==="
-	@rm $(OBJ)
+	@rm -f $(OBJ)
 	@rm -rf $(LIB_DIR)
 	@$(MAKE) -C $(CURDIR)/test clean
